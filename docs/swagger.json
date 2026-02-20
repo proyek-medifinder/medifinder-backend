@@ -1,0 +1,207 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API Server for Medifinder Application",
+        "title": "Medifinder API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "paths": {
+        "/apotek": {
+            "post": {
+                "description": "Admin creates their pharmacy profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Create a new Apotek",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer {token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Apotek Data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CreateApotekRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "message: apotek created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error: invalid input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/apotek/me": {
+            "get": {
+                "description": "Get pharmacy details owned by the logged-in admin",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Get My Apotek",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer {token}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Apotek"
+                        }
+                    },
+                    "404": {
+                        "description": "error: not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/apotek/nearby": {
+            "get": {
+                "description": "Search pharmacies within a certain radius using Haversine formula",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Search Nearby Apotek",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Radius in KM (default 5)",
+                        "name": "radius",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "data: []domain.Apotek, meta: object",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "domain.Apotek": {
+            "type": "object",
+            "properties": {
+                "adminID": {
+                    "type": "string"
+                },
+                "alamat": {
+                    "type": "string"
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "nama": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.CreateApotekRequest": {
+            "type": "object",
+            "properties": {
+                "alamat": {
+                    "type": "string",
+                    "example": "Jl. Raya No. 123"
+                },
+                "latitude": {
+                    "type": "number",
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": 106.816666
+                },
+                "nama": {
+                    "type": "string",
+                    "example": "Apotek Sehat"
+                }
+            }
+        }
+    }
+}

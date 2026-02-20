@@ -1,0 +1,138 @@
+definitions:
+  domain.Apotek:
+    properties:
+      adminID:
+        type: string
+      alamat:
+        type: string
+      distance:
+        type: number
+      id:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      nama:
+        type: string
+    type: object
+  handler.CreateApotekRequest:
+    properties:
+      alamat:
+        example: Jl. Raya No. 123
+        type: string
+      latitude:
+        example: -6.2
+        type: number
+      longitude:
+        example: 106.816666
+        type: number
+      nama:
+        example: Apotek Sehat
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API Server for Medifinder Application
+  title: Medifinder API
+  version: "1.0"
+paths:
+  /apotek:
+    post:
+      consumes:
+      - application/json
+      description: Admin creates their pharmacy profile
+      parameters:
+      - description: Bearer {token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Apotek Data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateApotekRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: apotek created'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: 'error: invalid input'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new Apotek
+      tags:
+      - Apotek
+  /apotek/me:
+    get:
+      description: Get pharmacy details owned by the logged-in admin
+      parameters:
+      - description: Bearer {token}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Apotek'
+        "404":
+          description: 'error: not found'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get My Apotek
+      tags:
+      - Apotek
+  /apotek/nearby:
+    get:
+      description: Search pharmacies within a certain radius using Haversine formula
+      parameters:
+      - description: Latitude
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: Radius in KM (default 5)
+        in: query
+        name: radius
+        type: number
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'data: []domain.Apotek, meta: object'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Search Nearby Apotek
+      tags:
+      - Apotek
+swagger: "2.0"

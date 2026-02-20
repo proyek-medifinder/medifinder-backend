@@ -12,6 +12,23 @@ type ApotekHandler struct {
 	Service *service.ApotekService
 }
 
+type CreateApotekRequest struct {
+	Nama      string  `json:"nama" example:"Apotek Sehat"`
+	Alamat    string  `json:"alamat" example:"Jl. Raya No. 123"`
+	Latitude  float64 `json:"latitude" example:"-6.200000"`
+	Longitude float64 `json:"longitude" example:"106.816666"`
+}
+
+// @Summary Create a new Apotek
+// @Description Admin creates their pharmacy profile
+// @Tags Apotek
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer {token}"
+// @Param request body handler.CreateApotekRequest true "Apotek Data"
+// @Success 201 {object} map[string]string "message: apotek created"
+// @Failure 400 {object} map[string]string "error: invalid input"
+// @Router /apotek [post]
 func (h *ApotekHandler) Create(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
@@ -36,6 +53,14 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "apotek created"})
 }
 
+// @Summary Get My Apotek
+// @Description Get pharmacy details owned by the logged-in admin
+// @Tags Apotek
+// @Produce json
+// @Param Authorization header string true "Bearer {token}"
+// @Success 200 {object} domain.Apotek
+// @Failure 404 {object} map[string]string "error: not found"
+// @Router /apotek/me [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
@@ -48,6 +73,17 @@ func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	c.JSON(200, apotek)
 }
 
+// @Summary Search Nearby Apotek
+// @Description Search pharmacies within a certain radius using Haversine formula
+// @Tags Apotek
+// @Produce json
+// @Param lat query number true "Latitude"
+// @Param lng query number true "Longitude"
+// @Param radius query number false "Radius in KM (default 5)"
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} map[string]interface{} "data: []domain.Apotek, meta: object"
+// @Router /apotek/nearby [get]
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 
 	lat, _ := strconv.ParseFloat(c.Query("lat"), 64)
