@@ -13,6 +13,17 @@ type ResepHandler struct {
 	Service *service.ResepService
 }
 
+// UploadResep godoc
+// @Summary Upload resep dokter
+// @Description User mengunggah resep sebagai dokumen pendukung transaksi
+// @Tags Resep
+// @Security BearerAuth
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "File resep (max 5MB)"
+// @Success 200 {object} dto.APIResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /resep [post]
 func (h *ResepHandler) Upload(c *gin.Context) {
 
 	userID := c.GetString("user_id")
@@ -48,6 +59,17 @@ func (h *ResepHandler) Upload(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "resep uploaded"})
 }
 
+// ListResep godoc
+// @Summary Daftar resep
+// @Description Admin apotek melihat daftar resep yang diunggah user
+// @Tags Admin Resep
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Limit data (max 50)"
+// @Success 200 {object} dto.PaginatedResepResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /admin/resep [get]
 func (h *ResepHandler) List(c *gin.Context) {
 
 	page, limit, offset := utils.GetPaginationAdvanced(c)
@@ -71,6 +93,18 @@ func (h *ResepHandler) List(c *gin.Context) {
 	})
 }
 
+// UpdateStatusResep godoc
+// @Summary Update status resep
+// @Description Admin apotek memverifikasi atau menolak resep
+// @Tags Admin Resep
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path int true "ID Resep"
+// @Param request body dto.UpdateResepStatusRequest true "Status resep"
+// @Success 200 {object} dto.APIResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /admin/resep/{id} [put]
 func (h *ResepHandler) UpdateStatus(c *gin.Context) {
 
 	id := c.Param("id")

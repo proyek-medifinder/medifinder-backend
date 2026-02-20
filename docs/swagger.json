@@ -8,9 +8,14 @@
     },
     "host": "localhost:8080",
     "paths": {
-        "/apotek": {
+        "/admin/obat": {
             "post": {
-                "description": "Admin creates their pharmacy profile",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin apotek menambahkan obat ke apotek miliknya",
                 "consumes": [
                     "application/json"
                 ],
@@ -18,43 +23,177 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Apotek"
+                    "Admin Obat"
                 ],
-                "summary": "Create a new Apotek",
+                "summary": "Tambahkan obat baru",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Bearer {token}",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "description": "Apotek Data",
+                        "description": "Data obat",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/handler.CreateApotekRequest"
+                            "$ref": "#/definitions/dto.ObatRequest"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
-                        "description": "message: apotek created",
+                        "description": "Created",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.APIResponse"
                         }
                     },
                     "400": {
-                        "description": "error: invalid input",
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/resep": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin apotek melihat daftar resep yang diunggah user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Resep"
+                ],
+                "summary": "Daftar resep",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit data (max 50)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaginatedResepResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/resep/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Admin apotek memverifikasi atau menolak resep",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Resep"
+                ],
+                "summary": "Update status resep",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID Resep",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status resep",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateResepStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/apotek": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Cari apotek terdekat",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/dto.ApotekResponse"
                             }
                         }
                     }
@@ -63,14 +202,14 @@
         },
         "/apotek/me": {
             "get": {
-                "description": "Get pharmacy details owned by the logged-in admin",
+                "description": "Melihat Apotek Berada di Akun Admin yang Sedang Login",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Apotek"
                 ],
-                "summary": "Get My Apotek",
+                "summary": "Melihat Apotek Saya",
                 "parameters": [
                     {
                         "type": "string",
@@ -101,14 +240,14 @@
         },
         "/apotek/nearby": {
             "get": {
-                "description": "Search pharmacies within a certain radius using Haversine formula",
+                "description": "Cari apotek dalam radius tertentu menggunakan rumus Haversine.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Apotek"
                 ],
-                "summary": "Search Nearby Apotek",
+                "summary": "Mencari Apotek Terdekat",
                 "parameters": [
                     {
                         "type": "number",
@@ -153,6 +292,358 @@
                     }
                 }
             }
+        },
+        "/cart": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil keranjang aktif milik user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Lihat keranjang aktif",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CartResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat transaksi dan menghasilkan token pembayaran",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Checkout"
+                ],
+                "summary": "Checkout keranjang",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CheckoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menambahkan obat ke keranjang user. Keranjang hanya boleh dari 1 apotek.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Tambah obat ke keranjang",
+                "parameters": [
+                    {
+                        "description": "Data item keranjang",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddCartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengubah jumlah obat dalam keranjang",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Update jumlah item keranjang",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Cart Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Jumlah baru",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus item obat dari keranjang user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Cart"
+                ],
+                "summary": "Hapus item dari keranjang",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Cart Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login user",
+                "parameters": [
+                    {
+                        "description": "Login data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/payment/notify": {
+            "post": {
+                "description": "Endpoint untuk menerima notifikasi pembayaran dari Midtrans",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "Callback notifikasi pembayaran",
+                "parameters": [
+                    {
+                        "description": "Midtrans notification payload",
+                        "name": "payload",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.PaymentNotification"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Registrasi user",
+                "parameters": [
+                    {
+                        "description": "Register data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/dto.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resep": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "User mengunggah resep sebagai dokumen pendukung transaksi",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resep"
+                ],
+                "summary": "Upload resep dokter",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File resep (max 5MB)",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.APIResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -182,24 +673,280 @@
                 }
             }
         },
-        "handler.CreateApotekRequest": {
+        "dto.APIResponse": {
+            "type": "object",
+            "properties": {
+                "data": {},
+                "message": {
+                    "type": "string",
+                    "example": "success"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "dto.AddCartRequest": {
+            "type": "object",
+            "properties": {
+                "jumlah": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "obat_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "dto.ApotekResponse": {
             "type": "object",
             "properties": {
                 "alamat": {
-                    "type": "string",
-                    "example": "Jl. Raya No. 123"
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "jarak_km": {
+                    "type": "number",
+                    "example": 1.2
                 },
                 "latitude": {
-                    "type": "number",
-                    "example": -6.2
+                    "type": "number"
                 },
                 "longitude": {
+                    "type": "number"
+                },
+                "nama": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Budi"
+                },
+                "role": {
+                    "type": "string",
+                    "example": "user"
+                },
+                "token": {
+                    "type": "string",
+                    "example": "jwt_token_here"
+                }
+            }
+        },
+        "dto.CartItemResponse": {
+            "type": "object",
+            "properties": {
+                "harga": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jumlah": {
+                    "type": "integer"
+                },
+                "nama_obat": {
+                    "type": "string"
+                },
+                "obat_id": {
+                    "type": "integer"
+                },
+                "subtotal": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.CartResponse": {
+            "type": "object",
+            "properties": {
+                "apotek_id": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CartItemResponse"
+                    }
+                },
+                "total": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.CheckoutResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "checkout berhasil"
+                },
+                "redirect_url": {
+                    "type": "string"
+                },
+                "snap_token": {
+                    "type": "string"
+                },
+                "transaksi_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "error message"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false
+                }
+            }
+        },
+        "dto.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "budi@email.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                }
+            }
+        },
+        "dto.MetaPagination": {
+            "type": "object",
+            "properties": {
+                "limit": {
+                    "type": "integer",
+                    "example": 10
+                },
+                "page": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 100
+                },
+                "total_page": {
+                    "type": "integer",
+                    "example": 10
+                }
+            }
+        },
+        "dto.ObatRequest": {
+            "type": "object",
+            "properties": {
+                "harga": {
                     "type": "number",
-                    "example": 106.816666
+                    "example": 5000
                 },
                 "nama": {
                     "type": "string",
-                    "example": "Apotek Sehat"
+                    "example": "Paracetamol"
+                },
+                "stok": {
+                    "type": "integer",
+                    "example": 50
+                }
+            }
+        },
+        "dto.PaginatedResepResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ResepResponse"
+                    }
+                },
+                "meta": {
+                    "$ref": "#/definitions/dto.MetaPagination"
+                }
+            }
+        },
+        "dto.PaymentNotification": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "string"
+                },
+                "payment_type": {
+                    "type": "string"
+                },
+                "signature_key": {
+                    "type": "string"
+                },
+                "transaction_status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "budi@email.com"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Budi"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                }
+            }
+        },
+        "dto.ResepResponse": {
+            "type": "object",
+            "properties": {
+                "file_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "transaksi_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateCartRequest": {
+            "type": "object",
+            "properties": {
+                "jumlah": {
+                    "type": "integer",
+                    "example": 3
+                }
+            }
+        },
+        "dto.UpdateResepStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "approved"
                 }
             }
         }

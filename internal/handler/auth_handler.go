@@ -9,6 +9,15 @@ type AuthHandler struct {
 	Service *service.AuthService
 }
 
+// Register godoc
+// @Summary Registrasi user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.RegisterRequest true "Register data"
+// @Success 201 {object} dto.AuthResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /register [post]
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
 		Name     string `json:"name"`
@@ -30,6 +39,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "registered successfully"})
 }
 
+// Login godoc
+// @Summary Login user
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.LoginRequest true "Login data"
+// @Success 200 {object} dto.AuthResponse
+// @Failure 401 {object} dto.ErrorResponse
+// @Router /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email"`

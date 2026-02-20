@@ -1,11 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -16,7 +14,35 @@ type PaymentHandler struct {
 	Service *service.PaymentService
 }
 
+type MidtransNotification struct {
+	OrderID           string `json:"order_id"`
+	StatusCode        string `json:"status_code"`
+	GrossAmount       string `json:"gross_amount"`
+	SignatureKey      string `json:"signature_key"`
+	TransactionStatus string `json:"transaction_status"`
+	FraudStatus       string `json:"fraud_status"`
+}
+
+func verifyMidtransSignature(req MidtransNotification, serverKey string) bool {
+	raw := req.OrderID + req.StatusCode + req.GrossAmount + serverKey
+
+	hash := sha512.Sum512([]byte(raw))
+	expected := hex.EncodeToString(hash[:])
+
+	return expected == req.SignatureKey
+}
+
+// PaymentNotification godoc
+// @Summary Callback notifikasi pembayaran
+// @Description Endpoint untuk menerima notifikasi pembayaran dari Midtrans
+// @Tags Payment
+// @Accept json
+// @Produce json
+// @Param payload body dto.PaymentNotification true "Midtrans notification payload"
+// @Success 200 {object} dto.APIResponse
+// @Router /payment/notify [post]
 func (h *PaymentHandler) Notification(c *gin.Context) {
+
 	var req struct {
 		OrderID           string `json:"order_id"`
 		StatusCode        string `json:"status_code"`
@@ -26,41 +52,34 @@ func (h *PaymentHandler) Notification(c *gin.Context) {
 		FraudStatus       string `json:"fraud_status"`
 	}
 
-	body, _ := io.ReadAll(c.Request.Body)
-	fmt.Println("==== RAW BODY FROM MIDTRANS ====")
-	fmt.Println(string(body))
-	fmt.Println("================================")
-
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-
+	// bind JSON langsung
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fmt.Println("❌ JSON BIND ERROR:", err)
+		fmt.Println("❌ invalid JSON payload:", err)
 		c.JSON(200, gin.H{"message": "ignored"})
 		return
 	}
 
-	serverKey := os.Getenv("MIDTRANS_SERVER_KEY")
+	// validasi field wajib
+	if req.OrderID == "" || req.SignatureKey == "" {
+		fmt.Println("❌ missing required fields")
+		c.JSON(200, gin.H{"message": "ignored"})
+		return
+	}
 
-	fmt.Println("MASUK HANDLER")
-
-	raw := req.OrderID + req.StatusCode + req.GrossAmount + serverKey
-	hash := sha512.Sum512([]byte(raw))
-	expected := hex.EncodeToString(hash[:])
-
-	if expected != req.SignatureKey {
-		fmt.Println("❌ INVALID SIGNATURE for order:", req.OrderID)
+	// verifikasi signature
+	if !verifyMidtransSignature(req, os.Getenv("MIDTRANS_SERVER_KEY")) {
+		fmt.Println("❌ invalid signature:", req.OrderID)
 		c.JSON(200, gin.H{"message": "invalid signature"})
 		return
 	}
 
-	err := h.Service.HandleNotification(
+	// proses notifikasi
+	if err := h.Service.HandleNotification(
 		req.OrderID,
 		req.TransactionStatus,
 		req.FraudStatus,
-	)
-
-	if err != nil {
-		fmt.Println("❌ SERVICE ERROR:", err)
+	); err != nil {
+		fmt.Println("❌ service error:", err)
 	}
 
 	c.JSON(200, gin.H{"message": "ok"})

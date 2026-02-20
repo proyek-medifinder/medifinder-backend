@@ -12,6 +12,17 @@ type ObatHandler struct {
 	Service *service.ObatService
 }
 
+// CreateObat godoc
+// @Summary Tambahkan obat baru
+// @Description Admin apotek menambahkan obat ke apotek miliknya
+// @Tags Admin Obat
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dto.ObatRequest true "Data obat"
+// @Success 201 {object} dto.APIResponse
+// @Failure 400 {object} dto.ErrorResponse
+// @Router /admin/obat [post]
 func (h *ObatHandler) Create(c *gin.Context) {
 	adminID := c.GetString("user_id")
 	fmt.Println("ADMIN ID FROM TOKEN:", adminID)

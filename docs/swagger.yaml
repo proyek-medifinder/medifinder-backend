@@ -16,20 +16,193 @@ definitions:
       nama:
         type: string
     type: object
-  handler.CreateApotekRequest:
+  dto.APIResponse:
+    properties:
+      data: {}
+      message:
+        example: success
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+  dto.AddCartRequest:
+    properties:
+      jumlah:
+        example: 2
+        type: integer
+      obat_id:
+        example: 1
+        type: integer
+    type: object
+  dto.ApotekResponse:
     properties:
       alamat:
-        example: Jl. Raya No. 123
         type: string
+      id:
+        example: 1
+        type: integer
+      jarak_km:
+        example: 1.2
+        type: number
       latitude:
-        example: -6.2
         type: number
       longitude:
-        example: 106.816666
         type: number
       nama:
-        example: Apotek Sehat
         type: string
+    type: object
+  dto.AuthResponse:
+    properties:
+      name:
+        example: Budi
+        type: string
+      role:
+        example: user
+        type: string
+      token:
+        example: jwt_token_here
+        type: string
+    type: object
+  dto.CartItemResponse:
+    properties:
+      harga:
+        type: number
+      id:
+        type: integer
+      jumlah:
+        type: integer
+      nama_obat:
+        type: string
+      obat_id:
+        type: integer
+      subtotal:
+        type: number
+    type: object
+  dto.CartResponse:
+    properties:
+      apotek_id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.CartItemResponse'
+        type: array
+      total:
+        type: number
+    type: object
+  dto.CheckoutResponse:
+    properties:
+      message:
+        example: checkout berhasil
+        type: string
+      redirect_url:
+        type: string
+      snap_token:
+        type: string
+      transaksi_id:
+        type: string
+    type: object
+  dto.ErrorResponse:
+    properties:
+      message:
+        example: error message
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        example: budi@email.com
+        type: string
+      password:
+        example: password123
+        type: string
+    type: object
+  dto.MetaPagination:
+    properties:
+      limit:
+        example: 10
+        type: integer
+      page:
+        example: 1
+        type: integer
+      total:
+        example: 100
+        type: integer
+      total_page:
+        example: 10
+        type: integer
+    type: object
+  dto.ObatRequest:
+    properties:
+      harga:
+        example: 5000
+        type: number
+      nama:
+        example: Paracetamol
+        type: string
+      stok:
+        example: 50
+        type: integer
+    type: object
+  dto.PaginatedResepResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/dto.ResepResponse'
+        type: array
+      meta:
+        $ref: '#/definitions/dto.MetaPagination'
+    type: object
+  dto.PaymentNotification:
+    properties:
+      order_id:
+        type: string
+      payment_type:
+        type: string
+      signature_key:
+        type: string
+      transaction_status:
+        type: string
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        example: budi@email.com
+        type: string
+      name:
+        example: Budi
+        type: string
+      password:
+        example: password123
+        type: string
+    type: object
+  dto.ResepResponse:
+    properties:
+      file_url:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      transaksi_id:
+        type: integer
+    type: object
+  dto.UpdateCartRequest:
+    properties:
+      jumlah:
+        example: 3
+        type: integer
+    type: object
+  dto.UpdateResepStatusRequest:
+    properties:
+      status:
+        example: approved
+        type: string
+    required:
+    - status
     type: object
 host: localhost:8080
 info:
@@ -38,44 +211,131 @@ info:
   title: Medifinder API
   version: "1.0"
 paths:
-  /apotek:
+  /admin/obat:
     post:
       consumes:
       - application/json
-      description: Admin creates their pharmacy profile
+      description: Admin apotek menambahkan obat ke apotek miliknya
       parameters:
-      - description: Bearer {token}
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: Apotek Data
+      - description: Data obat
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/handler.CreateApotekRequest'
+          $ref: '#/definitions/dto.ObatRequest'
       produces:
       - application/json
       responses:
         "201":
-          description: 'message: apotek created'
+          description: Created
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/dto.APIResponse'
         "400":
-          description: 'error: invalid input'
+          description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Create a new Apotek
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Tambahkan obat baru
+      tags:
+      - Admin Obat
+  /admin/resep:
+    get:
+      description: Admin apotek melihat daftar resep yang diunggah user
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Limit data (max 50)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.PaginatedResepResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Daftar resep
+      tags:
+      - Admin Resep
+  /admin/resep/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Admin apotek memverifikasi atau menolak resep
+      parameters:
+      - description: ID Resep
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status resep
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateResepStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update status resep
+      tags:
+      - Admin Resep
+  /apotek:
+    get:
+      parameters:
+      - description: Latitude
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/dto.ApotekResponse'
+            type: array
+      summary: Cari apotek terdekat
       tags:
       - Apotek
   /apotek/me:
     get:
-      description: Get pharmacy details owned by the logged-in admin
+      description: Melihat Apotek Berada di Akun Admin yang Sedang Login
       parameters:
       - description: Bearer {token}
         in: header
@@ -95,12 +355,12 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Get My Apotek
+      summary: Melihat Apotek Saya
       tags:
       - Apotek
   /apotek/nearby:
     get:
-      description: Search pharmacies within a certain radius using Haversine formula
+      description: Cari apotek dalam radius tertentu menggunakan rumus Haversine.
       parameters:
       - description: Latitude
         in: query
@@ -132,7 +392,230 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Search Nearby Apotek
+      summary: Mencari Apotek Terdekat
       tags:
       - Apotek
+  /cart:
+    get:
+      description: Mengambil keranjang aktif milik user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CartResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Lihat keranjang aktif
+      tags:
+      - Cart
+  /cart/checkout:
+    post:
+      description: Membuat transaksi dan menghasilkan token pembayaran
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CheckoutResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Checkout keranjang
+      tags:
+      - Checkout
+  /cart/items:
+    post:
+      consumes:
+      - application/json
+      description: Menambahkan obat ke keranjang user. Keranjang hanya boleh dari
+        1 apotek.
+      parameters:
+      - description: Data item keranjang
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Tambah obat ke keranjang
+      tags:
+      - Cart
+  /cart/items/{id}:
+    delete:
+      description: Menghapus item obat dari keranjang user
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Hapus item dari keranjang
+      tags:
+      - Cart
+    put:
+      consumes:
+      - application/json
+      description: Mengubah jumlah obat dalam keranjang
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Jumlah baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update jumlah item keranjang
+      tags:
+      - Cart
+  /login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Login user
+      tags:
+      - Auth
+  /payment/notify:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint untuk menerima notifikasi pembayaran dari Midtrans
+      parameters:
+      - description: Midtrans notification payload
+        in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/dto.PaymentNotification'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+      summary: Callback notifikasi pembayaran
+      tags:
+      - Payment
+  /register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Register data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Registrasi user
+      tags:
+      - Auth
+  /resep:
+    post:
+      consumes:
+      - multipart/form-data
+      description: User mengunggah resep sebagai dokumen pendukung transaksi
+      parameters:
+      - description: File resep (max 5MB)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Upload resep dokter
+      tags:
+      - Resep
 swagger: "2.0"

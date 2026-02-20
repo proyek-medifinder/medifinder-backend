@@ -19,16 +19,16 @@ type CreateApotekRequest struct {
 	Longitude float64 `json:"longitude" example:"106.816666"`
 }
 
-// @Summary Create a new Apotek
-// @Description Admin creates their pharmacy profile
+// SearchNearby godoc
+// @Summary Cari apotek terdekat
 // @Tags Apotek
-// @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer {token}"
-// @Param request body handler.CreateApotekRequest true "Apotek Data"
-// @Success 201 {object} map[string]string "message: apotek created"
-// @Failure 400 {object} map[string]string "error: invalid input"
-// @Router /apotek [post]
+// @Param lat query number true "Latitude"
+// @Param lng query number true "Longitude"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Success 200 {array} dto.ApotekResponse
+// @Router /apotek [get]
 func (h *ApotekHandler) Create(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
@@ -53,8 +53,8 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "apotek created"})
 }
 
-// @Summary Get My Apotek
-// @Description Get pharmacy details owned by the logged-in admin
+// @Summary Melihat Apotek Saya
+// @Description Melihat Apotek Berada di Akun Admin yang Sedang Login
 // @Tags Apotek
 // @Produce json
 // @Param Authorization header string true "Bearer {token}"
@@ -73,8 +73,8 @@ func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	c.JSON(200, apotek)
 }
 
-// @Summary Search Nearby Apotek
-// @Description Search pharmacies within a certain radius using Haversine formula
+// @Summary Mencari Apotek Terdekat
+// @Description Cari apotek dalam radius tertentu menggunakan rumus Haversine.
 // @Tags Apotek
 // @Produce json
 // @Param lat query number true "Latitude"
