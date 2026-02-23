@@ -71,6 +71,22 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(200, gin.H{"token": token})
 }
 
+func (h *AuthHandler) GoogleLogin(c *gin.Context) {
+	var req dto.GoogleLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format token tidak valid"})
+		return
+	}
+
+	token, err := h.Service.GoogleLogin(req.Token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": token, "message": "Login Google Berhasil"})
+}
+
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req dto.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

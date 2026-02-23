@@ -15,3 +15,12 @@ type ApotekResponse struct {
 	Longitude float64 `json:"longitude"`
 	Jarak     float64 `json:"jarak_km,omitempty" example:"1.2"`
 }
+
+type CreateApotekRequest struct {
+	Nama      string  `json:"nama" binding:"required"`
+	Alamat    string  `json:"alamat" binding:"required"`
+	Latitude  float64 `json:"latitude" binding:"required"`
+	Longitude float64 `json:"longitude" binding:"required"`
+	JamBuka   string  `json:"jam_buka" binding:"required"`
+	JamTutup  string  `json:"jam_tutup" binding:"required"`
+}

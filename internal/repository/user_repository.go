@@ -14,8 +14,8 @@ type UserRepository struct {
 
 func (r *UserRepository) Create(user *domain.User) error {
 	query := `
-	INSERT INTO users (id, name, email, password, role_id)
-	VALUES (:id, :name, :email, :password, :role_id)
+	INSERT INTO users (id, name, email, password, role_id, google_id)
+	VALUES (:id, :name, :email, :password, :role_id, :google_id)
 	`
 	_, err := r.DB.NamedExec(query, user)
 	return err

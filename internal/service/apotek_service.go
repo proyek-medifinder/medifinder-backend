@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
@@ -12,8 +13,7 @@ type ApotekService struct {
 	Repo *repository.ApotekRepository
 }
 
-func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long float64) error {
-
+func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup string) error {
 	existing, _ := s.Repo.FindByAdmin(adminID)
 	if existing != nil {
 		return errors.New("admin already has an apotek")
@@ -26,6 +26,8 @@ func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long fl
 		Alamat:    alamat,
 		Latitude:  lat,
 		Longitude: long,
+		JamBuka:   jamBuka,
+		JamTutup:  jamTutup,
 	}
 
 	return s.Repo.Create(apotek)
@@ -35,8 +37,7 @@ func (s *ApotekService) GetMyApotek(adminID string) (*domain.Apotek, error) {
 	return s.Repo.FindByAdmin(adminID)
 }
 
-func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64) error {
-
+func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup string) error {
 	apotek, err := s.Repo.FindByAdmin(adminID)
 	if err != nil {
 		return err
@@ -46,6 +47,8 @@ func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long fl
 	apotek.Alamat = alamat
 	apotek.Latitude = lat
 	apotek.Longitude = long
+	apotek.JamBuka = jamBuka
+	apotek.JamTutup = jamTutup
 
 	return s.Repo.Update(apotek)
 }
@@ -55,5 +58,14 @@ func (s *ApotekService) SearchNearby(
 	limit, offset int,
 ) ([]domain.Apotek, int, error) {
 
-	return s.Repo.FindNearby(lat, lng, radius, limit, offset)
+	// Set Timezone ke WIB (Asia/Jakarta)
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		loc = time.Local // Fallback kalau library time nggak nemu zona
+	}
+
+	// Ambil jam saat ini dengan format HH:MM:SS
+	currentTime := time.Now().In(loc).Format("15:04:05")
+
+	return s.Repo.FindNearby(lat, lng, radius, limit, offset, currentTime)
 }

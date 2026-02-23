@@ -89,7 +89,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
-	r.POST("/forgot-password", authHandler.ForgotPassword) // <-- Tambah ini
+	r.POST("/google-login", authHandler.GoogleLogin)
+	r.POST("/forgot-password", authHandler.ForgotPassword)
 	r.POST("/reset-password", authHandler.ResetPassword)
 	r.GET("/apotek/:id/obat", obatHandler.GetByApotekPublic)
 	r.POST("/payment/notify", paymentHandler.Notification)
@@ -101,15 +102,16 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	userGroup.Use(middleware.AuthMiddleware())
 	userGroup.Use(middleware.Authorize("user"))
 	{
+		// ++++++++++ CART +++++++++++
 		userGroup.POST("/cart/items", cartHandler.AddToCart)
 		userGroup.GET("/cart", cartHandler.GetCart)
 		userGroup.PUT("/cart/items/:id", cartHandler.UpdateItem)
 		userGroup.DELETE("/cart/items/:id", cartHandler.DeleteItem)
 		userGroup.POST("/cart/checkout", cartHandler.Checkout)
-
+		// ++++++++++ TRANSAKSI +++++++++++
 		userGroup.GET("/transaksi", transaksiHandler.UserHistory)
 		userGroup.GET("/transaksi/:id", transaksiHandler.Detail)
-
+		// ++++++++++ RESEP +++++++++++
 		userGroup.POST("/resep", resepHandler.Upload)
 	}
 
@@ -118,10 +120,18 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	adminGroup.Use(middleware.AuthMiddleware())
 	adminGroup.Use(middleware.Authorize("admin_apotek"))
 	{
+		// +++++++++++ OBAT +++++++++++
 		adminGroup.POST("/obat", obatHandler.Create)
+		adminGroup.GET("/obat", obatHandler.GetMyObat)
+		adminGroup.PUT("/obat/:id", obatHandler.Update)
+		adminGroup.DELETE("/obat/:id", obatHandler.Delete)
+		// ++++++++++ APOTEK +++++++++++
 		adminGroup.POST("/apotek", apotekHandler.Create)
 		adminGroup.GET("/apotek", apotekHandler.GetMyApotek)
+		adminGroup.PUT("/apotek", apotekHandler.UpdateMyApotek)
+		// ++++++++++ TRANSAKSI +++++++++++
 		adminGroup.GET("/transaksi", transaksiHandler.AdminHistory)
+		// ++++++++++ RESEP +++++++++++
 		adminGroup.PUT("/resep/:id", resepHandler.UpdateStatus)
 		adminGroup.GET("/resep", resepHandler.List)
 	}
@@ -131,8 +141,9 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	superAdminGroup.Use(middleware.AuthMiddleware())
 	superAdminGroup.Use(middleware.Authorize("super_admin"))
 	{
+		// ++++++++++ TRANSAKSI +++++++++++
 		superAdminGroup.GET("/transaksi", transaksiHandler.SuperAdminHistory)
-
+		// ++++++++++ ADMIN MANAGEMENT +++++++++++
 		superAdminGroup.GET("/admin", superAdminHandler.ListAdmin)
 		superAdminGroup.POST("/admin", superAdminHandler.CreateAdmin)
 		superAdminGroup.PUT("/admin/:id", superAdminHandler.UpdateAdmin)

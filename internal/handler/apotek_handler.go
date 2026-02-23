@@ -17,18 +17,14 @@ type CreateApotekRequest struct {
 	Alamat    string  `json:"alamat" example:"Jl. Raya No. 123"`
 	Latitude  float64 `json:"latitude" example:"-6.200000"`
 	Longitude float64 `json:"longitude" example:"106.816666"`
+	JamBuka   string  `json:"jam_buka" example:"08:00:00"`
+	JamTutup  string  `json:"jam_tutup" example:"22:00:00"`
 }
 
-// SearchNearby godoc
-// @Summary Cari apotek terdekat
+// @Summary Buat Apotek Baru
 // @Tags Apotek
 // @Produce json
-// @Param lat query number true "Latitude"
-// @Param lng query number true "Longitude"
-// @Param page query int false "Page"
-// @Param limit query int false "Limit"
-// @Success 200 {array} dto.ApotekResponse
-// @Router /apotek [get]
+// @Router /admin/apotek [post]
 func (h *ApotekHandler) Create(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
@@ -37,6 +33,8 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 		Alamat    string  `json:"alamat"`
 		Latitude  float64 `json:"latitude"`
 		Longitude float64 `json:"longitude"`
+		JamBuka   string  `json:"jam_buka"`
+		JamTutup  string  `json:"jam_tutup"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -44,7 +42,7 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.Create(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude)
+	err := h.Service.Create(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -54,12 +52,8 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 }
 
 // @Summary Melihat Apotek Saya
-// @Description Melihat Apotek Berada di Akun Admin yang Sedang Login
 // @Tags Apotek
 // @Produce json
-// @Param Authorization header string true "Bearer {token}"
-// @Success 200 {object} domain.Apotek
-// @Failure 404 {object} map[string]string "error: not found"
 // @Router /apotek/me [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
@@ -73,16 +67,40 @@ func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	c.JSON(200, apotek)
 }
 
-// @Summary Mencari Apotek Terdekat
-// @Description Cari apotek dalam radius tertentu menggunakan rumus Haversine.
+// @Summary Update Profil Apotek Sendiri
 // @Tags Apotek
 // @Produce json
-// @Param lat query number true "Latitude"
-// @Param lng query number true "Longitude"
-// @Param radius query number false "Radius in KM (default 5)"
-// @Param page query int false "Page number"
-// @Param limit query int false "Items per page"
-// @Success 200 {object} map[string]interface{} "data: []domain.Apotek, meta: object"
+// @Router /admin/apotek [put]
+func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
+	// Ambil ID admin dari token JWT yang lagi login
+	adminID := c.GetString("user_id")
+
+	var req struct {
+		Nama      string  `json:"nama"`
+		Alamat    string  `json:"alamat"`
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+		JamBuka   string  `json:"jam_buka"`
+		JamTutup  string  `json:"jam_tutup"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "format data tidak valid"})
+		return
+	}
+
+	err := h.Service.Update(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup)
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "profil apotek berhasil diupdate"})
+}
+
+// @Summary Mencari Apotek Terdekat & Buka
+// @Tags Apotek
+// @Produce json
 // @Router /apotek/nearby [get]
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 

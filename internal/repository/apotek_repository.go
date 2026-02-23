@@ -11,8 +11,8 @@ type ApotekRepository struct {
 
 func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 	query := `
-	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude)
-	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude)
+	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup)
+	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude, :jam_buka, :jam_tutup)
 	`
 	_, err := r.DB.NamedExec(query, apotek)
 	return err
@@ -20,7 +20,7 @@ func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 
 func (r *ApotekRepository) FindByAdmin(adminID string) (*domain.Apotek, error) {
 	var apotek domain.Apotek
-	query := `SELECT id, admin_id, nama, alamat, latitude, longitude 
+	query := `SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup 
           FROM apotek 
           WHERE admin_id = $1::uuid`
 	err := r.DB.Get(&apotek, query, adminID)
@@ -31,9 +31,7 @@ func (r *ApotekRepository) FindByAdmin(adminID string) (*domain.Apotek, error) {
 }
 
 func (r *ObatRepository) FindByApotekPaginated(apotekID string, limit, offset int) ([]domain.Obat, error) {
-
 	var obat []domain.Obat
-
 	query := `
 	SELECT id, apotek_id, nama, stok, harga
 	FROM obat
@@ -41,7 +39,6 @@ func (r *ObatRepository) FindByApotekPaginated(apotekID string, limit, offset in
 	ORDER BY nama ASC
 	LIMIT $2 OFFSET $3
 	`
-
 	err := r.DB.Select(&obat, query, apotekID, limit, offset)
 	return obat, err
 }
@@ -56,17 +53,19 @@ func (r *ObatRepository) CountByApotek(apotekID string) (int, error) {
 func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	query := `
 	UPDATE apotek 
-	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude
+	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude, jam_buka=:jam_buka, jam_tutup=:jam_tutup
 	WHERE id=:id
 	`
 	_, err := r.DB.NamedExec(query, apotek)
 	return err
 }
 
+// Fitur Filter Jarak + Jam Operasional Terbuka
 func (r *ApotekRepository) FindNearby(
 	lat, lng float64,
 	radius float64,
 	limit, offset int,
+	currentTime string,
 ) ([]domain.Apotek, int, error) {
 
 	var list []domain.Apotek
@@ -83,16 +82,21 @@ func (r *ApotekRepository) FindNearby(
 			sin(radians(latitude))
 		)
 	) <= $3
+	AND (
+		(jam_buka <= jam_tutup AND $4::time >= jam_buka AND $4::time <= jam_tutup)
+		OR
+		(jam_buka > jam_tutup AND ($4::time >= jam_buka OR $4::time <= jam_tutup))
+	)
 	`
 
 	countQuery := "SELECT COUNT(*) " + baseQuery
-	err := r.DB.Get(&total, countQuery, lat, lng, radius)
+	err := r.DB.Get(&total, countQuery, lat, lng, radius, currentTime)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	dataQuery := `
-	SELECT id, nama, alamat, latitude, longitude,
+	SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup,
 	(
 		6371 * acos(
 			cos(radians($1)) *
@@ -104,11 +108,11 @@ func (r *ApotekRepository) FindNearby(
 	) AS distance
 	` + baseQuery + `
 	ORDER BY distance ASC
-	LIMIT $4 OFFSET $5
+	LIMIT $5 OFFSET $6
 	`
 
 	err = r.DB.Select(&list, dataQuery,
-		lat, lng, radius,
+		lat, lng, radius, currentTime,
 		limit, offset,
 	)
 
