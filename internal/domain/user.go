@@ -1,11 +1,20 @@
 package domain
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type User struct {
-	ID       uuid.UUID `db:"id"`
-	Name     string    `db:"name"`
-	Email    string    `db:"email"`
-	Password string    `db:"password"`
-	RoleID   int       `db:"role_id"`
+	ID               uuid.UUID  `db:"id" json:"id"`
+	Name             string     `db:"name" json:"name"`
+	Email            string     `db:"email" json:"email"`
+	Password         string     `db:"password" json:"-"`
+	RoleID           int        `db:"role_id" json:"role_id"`
+	GoogleID         *string    `db:"google_id" json:"google_id,omitempty"`
+	ResetToken       *string    `db:"reset_token" json:"-"`
+	ResetTokenExpiry *time.Time `db:"reset_token_expiry" json:"-"`
+	CreatedAt        time.Time  `db:"created_at" json:"created_at"`
+	UpdatedAt        time.Time  `db:"updated_at" json:"updated_at"`
 }

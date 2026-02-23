@@ -89,6 +89,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.POST("/forgot-password", authHandler.ForgotPassword) // <-- Tambah ini
+	r.POST("/reset-password", authHandler.ResetPassword)
 	r.GET("/apotek/:id/obat", obatHandler.GetByApotekPublic)
 	r.POST("/payment/notify", paymentHandler.Notification)
 	r.GET("/apotek", apotekHandler.SearchNearby)

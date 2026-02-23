@@ -1,14 +1,18 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
-	"fmt"
+	"log"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/sasaefulanwar/medifinder/internal/domain"
+	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/repository"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -35,20 +39,13 @@ func (s *AuthService) Login(email, password string) (string, error) {
 	email = strings.TrimSpace(email)
 	password = strings.TrimSpace(password)
 
-	fmt.Println("EMAIL INPUT:", email)
-	fmt.Println("PASSWORD INPUT:", password)
-
 	user, err := s.UserRepo.FindByEmail(email)
 	if err != nil {
-		fmt.Println("USER NOT FOUND")
 		return "", errors.New("invalid email/password")
 	}
 
-	fmt.Println("PASSWORD HASH DB:", user.Password)
-
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		fmt.Println("PASSWORD NOT MATCH")
 		return "", errors.New("invalid email/password")
 	}
 
@@ -61,4 +58,48 @@ func (s *AuthService) Login(email, password string) (string, error) {
 	}
 
 	return utils.GenerateJWT(user.ID, role)
+}
+
+// ================= FITUR BARU RESET PASSWORD =================
+
+func generateRandomToken() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
+}
+
+func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
+	user, err := s.UserRepo.FindByEmail(req.Email)
+	if err != nil || user == nil {
+		return errors.New("email tidak terdaftar")
+	}
+
+	token := generateRandomToken()
+	expiry := time.Now().Add(1 * time.Hour)
+
+	err = s.UserRepo.UpdateResetToken(req.Email, token, expiry)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("BOHONG-BOHONGAN KIRIM EMAIL: Klik link ini untuk reset password -> http://localhost:8080/reset-password?token=%s\n", token)
+	return nil
+}
+
+func (s *AuthService) ResetPassword(req dto.ResetPasswordRequest) error {
+	user, err := s.UserRepo.FindByResetToken(req.Token)
+	if err != nil || user == nil {
+		return errors.New("token tidak valid atau tidak ditemukan")
+	}
+
+	if time.Now().After(*user.ResetTokenExpiry) {
+		return errors.New("token sudah kedaluwarsa")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	return s.UserRepo.ClearResetToken(user.ID, string(hashedPassword))
 }
