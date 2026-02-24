@@ -1,21 +1,4 @@
 definitions:
-  domain.Apotek:
-    properties:
-      adminID:
-        type: string
-      alamat:
-        type: string
-      distance:
-        type: number
-      id:
-        type: string
-      latitude:
-        type: number
-      longitude:
-        type: number
-      nama:
-        type: string
-    type: object
   dto.APIResponse:
     properties:
       data: {}
@@ -35,21 +18,16 @@ definitions:
         example: 1
         type: integer
     type: object
-  dto.ApotekResponse:
+  dto.AdminRequest:
     properties:
-      alamat:
+      email:
+        example: admin@apotek.com
         type: string
-      id:
-        example: 1
-        type: integer
-      jarak_km:
-        example: 1.2
-        type: number
-      latitude:
-        type: number
-      longitude:
-        type: number
       nama:
+        example: Admin Apotek
+        type: string
+      password:
+        example: password123
         type: string
     type: object
   dto.AuthResponse:
@@ -110,6 +88,20 @@ definitions:
       success:
         example: false
         type: boolean
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  dto.GoogleLoginRequest:
+    properties:
+      token:
+        type: string
+    required:
+    - token
     type: object
   dto.LoginRequest:
     properties:
@@ -190,6 +182,17 @@ definitions:
       transaksi_id:
         type: integer
     type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        minLength: 6
+        type: string
+      token:
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
   dto.UpdateCartRequest:
     properties:
       jumlah:
@@ -211,7 +214,34 @@ info:
   title: Medifinder API
   version: "1.0"
 paths:
+  /admin/apotek:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      summary: Buat Apotek Baru
+      tags:
+      - Apotek
+    put:
+      produces:
+      - application/json
+      responses: {}
+      summary: Update Profil Apotek Sendiri
+      tags:
+      - Apotek
   /admin/obat:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lihat stok obat saya (Admin Only)
+      tags:
+      - Admin Obat
     post:
       consumes:
       - application/json
@@ -237,6 +267,17 @@ paths:
       security:
       - BearerAuth: []
       summary: Tambahkan obat baru
+      tags:
+      - Admin Obat
+  /admin/obat/:id:
+    delete:
+      responses: {}
+      summary: Hapus obat
+      tags:
+      - Admin Obat
+    put:
+      responses: {}
+      summary: Update data obat
       tags:
       - Admin Obat
   /admin/resep:
@@ -300,19 +341,22 @@ paths:
       summary: Update status resep
       tags:
       - Admin Resep
-  /apotek:
+  /admin/transaksi:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Riwayat transaksi masuk (Admin Apotek)
+      tags:
+      - Admin Transaksi
+  /apotek/{id}/obat:
     get:
       parameters:
-      - description: Latitude
-        in: query
-        name: lat
+      - description: Apotek ID
+        in: path
+        name: id
         required: true
-        type: number
-      - description: Longitude
-        in: query
-        name: lng
-        required: true
-        type: number
+        type: string
       - description: Page
         in: query
         name: page
@@ -321,78 +365,29 @@ paths:
         in: query
         name: limit
         type: integer
-      produces:
-      - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/dto.ApotekResponse'
-            type: array
-      summary: Cari apotek terdekat
+            additionalProperties: true
+            type: object
+      summary: Lihat daftar obat di apotek tertentu (Public)
       tags:
-      - Apotek
+      - Obat
   /apotek/me:
     get:
-      description: Melihat Apotek Berada di Akun Admin yang Sedang Login
-      parameters:
-      - description: Bearer {token}
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/domain.Apotek'
-        "404":
-          description: 'error: not found'
-          schema:
-            additionalProperties:
-              type: string
-            type: object
+      responses: {}
       summary: Melihat Apotek Saya
       tags:
       - Apotek
   /apotek/nearby:
     get:
-      description: Cari apotek dalam radius tertentu menggunakan rumus Haversine.
-      parameters:
-      - description: Latitude
-        in: query
-        name: lat
-        required: true
-        type: number
-      - description: Longitude
-        in: query
-        name: lng
-        required: true
-        type: number
-      - description: Radius in KM (default 5)
-        in: query
-        name: radius
-        type: number
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Items per page
-        in: query
-        name: limit
-        type: integer
       produces:
       - application/json
-      responses:
-        "200":
-          description: 'data: []domain.Apotek, meta: object'
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Mencari Apotek Terdekat
+      responses: {}
+      summary: Mencari Apotek Terdekat & Buka
       tags:
       - Apotek
   /cart:
@@ -519,6 +514,50 @@ paths:
       summary: Update jumlah item keranjang
       tags:
       - Cart
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Email user
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Request reset password
+      tags:
+      - Auth
+  /google-login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Google token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.GoogleLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Login via Google
+      tags:
+      - Auth
   /login:
     post:
       consumes:
@@ -618,4 +657,85 @@ paths:
       summary: Upload resep dokter
       tags:
       - Resep
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Token & password baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset password dengan token
+      tags:
+      - Auth
+  /superadmin/admin:
+    get:
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Daftar semua admin apotek
+      tags:
+      - SuperAdmin
+    post:
+      parameters:
+      - description: Data admin
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminRequest'
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Buat akun admin apotek baru
+      tags:
+      - SuperAdmin
+  /transaksi:
+    get:
+      parameters:
+      - description: Filter Status
+        in: query
+        name: status
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Riwayat transaksi user
+      tags:
+      - Transaksi
+  /transaksi/{id}:
+    get:
+      parameters:
+      - description: Transaksi ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Detail transaksi
+      tags:
+      - Transaksi
 swagger: "2.0"

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
 	"github.com/sasaefulanwar/medifinder/internal/repository"
@@ -36,4 +38,31 @@ func (s *SuperAdminService) UpdateAdmin(id, name, email string) error {
 
 func (s *SuperAdminService) DeleteAdmin(id string) error {
 	return s.UserRepo.DeleteAdmin(uuid.MustParse(id))
+}
+
+// FITUR VERIFIKASI ADMIN
+func (s *SuperAdminService) GetPendingAdmins(limit, offset int) ([]domain.User, int, error) {
+	return s.UserRepo.FindPendingAdmins(limit, offset)
+}
+
+func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, notes string) error {
+	if action != "approved" && action != "rejected" {
+		return errors.New("action harus 'approved' atau 'rejected'")
+	}
+
+	if action == "rejected" && notes == "" {
+		return errors.New("alasan penolakan (notes) wajib diisi")
+	}
+
+	adminID, err := uuid.Parse(adminIDStr)
+	if err != nil {
+		return errors.New("invalid admin ID")
+	}
+
+	superAdminID, err := uuid.Parse(superAdminIDStr)
+	if err != nil {
+		return errors.New("invalid super admin ID")
+	}
+
+	return s.UserRepo.VerifyAdmin(adminID, superAdminID, action, notes)
 }

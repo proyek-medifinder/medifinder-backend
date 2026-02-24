@@ -14,6 +14,7 @@ type LoginRequest struct {
 type AuthResponse struct {
 	Token string `json:"token" example:"jwt_token_here"`
 	Name  string `json:"name" example:"Budi"`
+	Email string `json:"email"`
 	Role  string `json:"role" example:"user"`
 }
 

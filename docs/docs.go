@@ -15,7 +15,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/admin/apotek": {
+            "put": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Update Profil Apotek Sendiri",
+                "responses": {}
+            },
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Buat Apotek Baru",
+                "responses": {}
+            }
+        },
         "/admin/obat": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Admin Obat"
+                ],
+                "summary": "Lihat stok obat saya (Admin Only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -58,6 +100,22 @@ const docTemplate = `{
                         }
                     }
                 }
+            }
+        },
+        "/admin/obat/:id": {
+            "put": {
+                "tags": [
+                    "Admin Obat"
+                ],
+                "summary": "Update data obat",
+                "responses": {}
+            },
+            "delete": {
+                "tags": [
+                    "Admin Obat"
+                ],
+                "summary": "Hapus obat",
+                "responses": {}
             }
         },
         "/admin/resep": {
@@ -157,7 +215,21 @@ const docTemplate = `{
                 }
             }
         },
-        "/apotek": {
+        "/admin/transaksi": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Admin Transaksi"
+                ],
+                "summary": "Riwayat transaksi masuk (Admin Apotek)",
+                "responses": {}
+            }
+        },
+        "/apotek/me": {
             "get": {
                 "produces": [
                     "application/json"
@@ -165,20 +237,34 @@ const docTemplate = `{
                 "tags": [
                     "Apotek"
                 ],
-                "summary": "Cari apotek terdekat",
+                "summary": "Melihat Apotek Saya",
+                "responses": {}
+            }
+        },
+        "/apotek/nearby": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Mencari Apotek Terdekat \u0026 Buka",
+                "responses": {}
+            }
+        },
+        "/apotek/{id}/obat": {
+            "get": {
+                "tags": [
+                    "Obat"
+                ],
+                "summary": "Lihat daftar obat di apotek tertentu (Public)",
                 "parameters": [
                     {
-                        "type": "number",
-                        "description": "Latitude",
-                        "name": "lat",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "Longitude",
-                        "name": "lng",
-                        "in": "query",
+                        "type": "string",
+                        "description": "Apotek ID",
+                        "name": "id",
+                        "in": "path",
                         "required": true
                     },
                     {
@@ -197,101 +283,6 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/dto.ApotekResponse"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/apotek/me": {
-            "get": {
-                "description": "Melihat Apotek Berada di Akun Admin yang Sedang Login",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Apotek"
-                ],
-                "summary": "Melihat Apotek Saya",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer {token}",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Apotek"
-                        }
-                    },
-                    "404": {
-                        "description": "error: not found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/apotek/nearby": {
-            "get": {
-                "description": "Cari apotek dalam radius tertentu menggunakan rumus Haversine.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Apotek"
-                ],
-                "summary": "Mencari Apotek Terdekat",
-                "parameters": [
-                    {
-                        "type": "number",
-                        "description": "Latitude",
-                        "name": "lat",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "Longitude",
-                        "name": "lng",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "Radius in KM (default 5)",
-                        "name": "radius",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "Items per page",
-                        "name": "limit",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "data: []domain.Apotek, meta: object",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -497,6 +488,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/forgot-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Request reset password",
+                "parameters": [
+                    {
+                        "description": "Email user",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ForgotPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/google-login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login via Google",
+                "parameters": [
+                    {
+                        "description": "Google token",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.GoogleLoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "consumes": [
@@ -651,35 +710,141 @@ const docTemplate = `{
                     }
                 }
             }
-        }
-    },
-    "definitions": {
-        "domain.Apotek": {
-            "type": "object",
-            "properties": {
-                "adminID": {
-                    "type": "string"
-                },
-                "alamat": {
-                    "type": "string"
-                },
-                "distance": {
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "nama": {
-                    "type": "string"
+        },
+        "/reset-password": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset password dengan token",
+                "parameters": [
+                    {
+                        "description": "Token \u0026 password baru",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ResetPasswordRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
                 }
             }
         },
+        "/superadmin/admin": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "Daftar semua admin apotek",
+                "responses": {}
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "Buat akun admin apotek baru",
+                "parameters": [
+                    {
+                        "description": "Data admin",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AdminRequest"
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
+        "/transaksi": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Transaksi"
+                ],
+                "summary": "Riwayat transaksi user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter Status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/transaksi/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "Transaksi"
+                ],
+                "summary": "Detail transaksi",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaksi ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
         "dto.APIResponse": {
             "type": "object",
             "properties": {
@@ -707,28 +872,20 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.ApotekResponse": {
+        "dto.AdminRequest": {
             "type": "object",
             "properties": {
-                "alamat": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "jarak_km": {
-                    "type": "number",
-                    "example": 1.2
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "longitude": {
-                    "type": "number"
+                "email": {
+                    "type": "string",
+                    "example": "admin@apotek.com"
                 },
                 "nama": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "Admin Apotek"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
                 }
             }
         },
@@ -817,6 +974,28 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": false
+                }
+            }
+        },
+        "dto.ForgotPasswordRequest": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GoogleLoginRequest": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
                 }
             }
         },
@@ -933,6 +1112,22 @@ const docTemplate = `{
                 },
                 "transaksi_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.ResetPasswordRequest": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "token"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "token": {
+                    "type": "string"
                 }
             }
         },

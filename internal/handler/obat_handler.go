@@ -90,6 +90,14 @@ func (h *ObatHandler) Delete(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "obat deleted"})
 }
 
+// GetByApotekPublic godoc
+// @Summary Lihat daftar obat di apotek tertentu (Public)
+// @Tags Obat
+// @Param id path string true "Apotek ID"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Success 200 {object} map[string]interface{}
+// @Router /apotek/{id}/obat [get]
 func (h *ObatHandler) GetByApotekPublic(c *gin.Context) {
 
 	apotekID := c.Param("id")
@@ -110,6 +118,12 @@ func (h *ObatHandler) GetByApotekPublic(c *gin.Context) {
 	})
 }
 
+// GetMyObat godoc
+// @Summary Lihat stok obat saya (Admin Only)
+// @Tags Admin Obat
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /admin/obat [get]
 func (h *ObatHandler) GetMyObat(c *gin.Context) {
 	adminID := c.GetString("user_id")
 

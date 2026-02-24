@@ -62,15 +62,25 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	token, err := h.Service.Login(req.Email, req.Password)
+	// Tangkap response lengkap dari Service
+	res, err := h.Service.Login(req.Email, req.Password)
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{"token": token})
+	// Kirim res yang berisi Token, Name, dan Role
+	c.JSON(200, res)
 }
 
+// GoogleLogin godoc
+// @Summary Login via Google
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.GoogleLoginRequest true "Google token"
+// @Success 200 {object} map[string]interface{}
+// @Router /google-login [post]
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	var req dto.GoogleLoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -78,15 +88,24 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		return
 	}
 
-	token, err := h.Service.GoogleLogin(req.Token)
+	// Tangkap response lengkap dari Service
+	res, err := h.Service.GoogleLogin(req.Token)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token, "message": "Login Google Berhasil"})
+	c.JSON(http.StatusOK, res)
 }
 
+// ForgotPassword godoc
+// @Summary Request reset password
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.ForgotPasswordRequest true "Email user"
+// @Success 200 {object} map[string]interface{}
+// @Router /forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req dto.ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -102,6 +121,14 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Instruksi reset password telah dikirim ke email"})
 }
 
+// ResetPassword godoc
+// @Summary Reset password dengan token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.ResetPasswordRequest true "Token & password baru"
+// @Success 200 {object} map[string]interface{}
+// @Router /reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	var req dto.ResetPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -115,4 +142,26 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah, silakan login kembali"})
+}
+
+// @Summary Registrasi Mandiri Admin Apotek
+// @Tags Auth
+// @Produce json
+// @Router /register-admin [post]
+func (h *AuthHandler) RegisterAdmin(c *gin.Context) {
+	var req dto.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Format data tidak valid"})
+		return
+	}
+
+	err := h.Service.RegisterAdmin(req.Name, req.Email, req.Password)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Gagal mendaftarkan admin apotek: " + err.Error()})
+		return
+	}
+
+	c.JSON(201, gin.H{
+		"message": "Registrasi Admin Apotek berhasil. Silakan tunggu verifikasi dari Super Admin sebelum dapat login.",
+	})
 }

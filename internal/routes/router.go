@@ -21,7 +21,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"}, // Ganti sama URL frontend lo
+		AllowOrigins:     []string{"http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -88,13 +88,18 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 
 	// ================= PUBLIC =================
 	r.POST("/register", authHandler.Register)
+	r.POST("/register-admin", authHandler.RegisterAdmin)
 	r.POST("/login", authHandler.Login)
 	r.POST("/google-login", authHandler.GoogleLogin)
+	// ++++++++++++++++++++++++++++++++++++++++++
 	r.POST("/forgot-password", authHandler.ForgotPassword)
 	r.POST("/reset-password", authHandler.ResetPassword)
+	// ++++++++++++++++++++++++++++++++++++++++++
 	r.GET("/apotek/:id/obat", obatHandler.GetByApotekPublic)
-	r.POST("/payment/notify", paymentHandler.Notification)
 	r.GET("/apotek", apotekHandler.SearchNearby)
+	// ++++++++++++++++++++++++++++++++++++++++++
+	r.POST("/payment/notify", paymentHandler.Notification)
+	// +++++++++++++++++++++++++++++++++++++++++
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// ================= USER =================
@@ -148,6 +153,9 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		superAdminGroup.POST("/admin", superAdminHandler.CreateAdmin)
 		superAdminGroup.PUT("/admin/:id", superAdminHandler.UpdateAdmin)
 		superAdminGroup.DELETE("/admin/:id", superAdminHandler.DeleteAdmin)
+		// +++++++++ VERIFIKASI ADMIN +++++++++++
+		superAdminGroup.GET("/pengajuan", superAdminHandler.GetPendingAdmins)
+		superAdminGroup.POST("/verifikasi", superAdminHandler.VerifyAdmin)
 	}
 
 	return r
