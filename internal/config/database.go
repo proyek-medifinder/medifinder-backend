@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -10,21 +9,29 @@ import (
 )
 
 func ConnectDB() *sqlx.DB {
-	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_NAME"),
-		os.Getenv("DB_SSLMODE"),
-	)
 
-	db, err := sqlx.Connect("postgres", dsn)
+	databaseURL := os.Getenv("DATABASE_URL")
+
+	var db *sqlx.DB
+	var err error
+
+	if databaseURL != "" {
+		db, err = sqlx.Connect("postgres", databaseURL)
+	} else {
+		dsn := "host=" + os.Getenv("DB_HOST") +
+			" port=" + os.Getenv("DB_PORT") +
+			" user=" + os.Getenv("DB_USER") +
+			" password=" + os.Getenv("DB_PASSWORD") +
+			" dbname=" + os.Getenv("DB_NAME") +
+			" sslmode=" + os.Getenv("DB_SSLMODE")
+
+		db, err = sqlx.Connect("postgres", dsn)
+	}
+
 	if err != nil {
 		log.Fatal("DB connection failed:", err)
 	}
 
-	log.Println("Database connected!")
+	log.Println("✅ Database connected!")
 	return db
 }
