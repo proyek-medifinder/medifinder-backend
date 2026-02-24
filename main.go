@@ -31,6 +31,12 @@ func main() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 
-	port := os.Getenv("APP_PORT")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = os.Getenv("APP_PORT") 
+	}
+	if port == "" {
+		port = "8080" 
+	}
 	r.Run(":" + port)
 }
