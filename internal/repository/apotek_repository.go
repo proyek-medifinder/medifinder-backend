@@ -36,8 +36,14 @@ func (r *ObatRepository) FindByApotekPaginated(apotekID string, name string, lim
 	var args []interface{}
 
 	if name != "" {
-		query = `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1 AND nama ILIKE $2 LIMIT $3 OFFSET $4`
-		args = []interface{}{apotekID, "%" + name + "%", limit, offset}
+		query = `
+			SELECT id, apotek_id, nama, stok, harga 
+			FROM obat 
+			WHERE apotek_id=$1 AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
+			ORDER BY similarity(nama, $3) DESC
+			LIMIT $4 OFFSET $5
+		`
+		args = []interface{}{apotekID, "%" + name + "%", name, limit, offset}
 	} else {
 		query = `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1 LIMIT $2 OFFSET $3`
 		args = []interface{}{apotekID, limit, offset}
@@ -53,8 +59,12 @@ func (r *ObatRepository) CountByApotek(apotekID string, name string) (int, error
 	var args []interface{}
 
 	if name != "" {
-		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1 AND nama ILIKE $2`
-		args = []interface{}{apotekID, "%" + name + "%"}
+		query = `
+			SELECT COUNT(id) 
+			FROM obat 
+			WHERE apotek_id=$1 AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
+		`
+		args = []interface{}{apotekID, "%" + name + "%", name}
 	} else {
 		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1`
 		args = []interface{}{apotekID}
