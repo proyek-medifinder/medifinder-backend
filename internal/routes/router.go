@@ -153,6 +153,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		superAdminGroup.POST("/admin", superAdminHandler.CreateAdmin)
 		superAdminGroup.PUT("/admin/:id", superAdminHandler.UpdateAdmin)
 		superAdminGroup.DELETE("/admin/:id", superAdminHandler.DeleteAdmin)
+		superAdminGroup.PATCH("/admin/:id/status", superAdminHandler.ChangeAdminStatus)
 		// +++++++++ VERIFIKASI ADMIN +++++++++++
 		superAdminGroup.GET("/pengajuan", superAdminHandler.GetPendingAdmins)
 		superAdminGroup.POST("/verifikasi", superAdminHandler.VerifyAdmin)

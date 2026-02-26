@@ -40,7 +40,6 @@ func (s *SuperAdminService) DeleteAdmin(id string) error {
 	return s.UserRepo.DeleteAdmin(uuid.MustParse(id))
 }
 
-// FITUR VERIFIKASI ADMIN
 func (s *SuperAdminService) GetPendingAdmins(limit, offset int) ([]domain.User, int, error) {
 	return s.UserRepo.FindPendingAdmins(limit, offset)
 }
@@ -65,4 +64,18 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 	}
 
 	return s.UserRepo.VerifyAdmin(adminID, superAdminID, action, notes)
+}
+
+func (s *SuperAdminService) ChangeAdminStatus(adminID string, status string) error {
+	id, err := uuid.Parse(adminID)
+	if err != nil {
+		return errors.New("format ID admin tidak valid")
+	}
+
+	// Validasi input status biar nggak diisi sembarangan
+	if status != "approved" && status != "suspended" {
+		return errors.New("status hanya bisa 'approved' atau 'suspended'")
+	}
+
+	return s.UserRepo.UpdateAdminStatus(id, status)
 }

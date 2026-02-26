@@ -756,6 +756,42 @@ paths:
       summary: Buat akun admin apotek baru
       tags:
       - SuperAdmin
+  /superadmin/admin/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ID Admin Apotek
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'Status baru: ''approved'' atau ''suspended'''
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ubah status admin apotek (Suspend / Activate)
+      tags:
+      - Super Admin
   /transaksi:
     get:
       parameters:

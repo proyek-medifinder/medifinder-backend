@@ -140,3 +140,36 @@ func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "Berhasil memverifikasi pengajuan admin apotek"})
 }
+
+// ChangeAdminStatus godoc
+// @Summary Ubah status admin apotek (Suspend / Activate)
+// @Tags Super Admin
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "ID Admin Apotek"
+// @Param request body map[string]string true "Status baru: 'approved' atau 'suspended'"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /superadmin/admin/{id}/status [patch]
+func (h *SuperAdminHandler) ChangeAdminStatus(c *gin.Context) {
+	adminID := c.Param("id")
+
+	var req struct {
+		Status string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Format input tidak valid"})
+		return
+	}
+
+	if err := h.Service.ChangeAdminStatus(adminID, req.Status); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Status admin berhasil diubah menjadi " + req.Status,
+	})
+}

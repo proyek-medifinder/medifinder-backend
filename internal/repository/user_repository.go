@@ -167,3 +167,11 @@ func (r *UserRepository) VerifyAdmin(adminID, superAdminID uuid.UUID, action, no
 
 	return tx.Commit()
 }
+
+// ================= FITUR SUPER ADMIN UBAH STATUS (FR-45) =================
+
+func (r *UserRepository) UpdateAdminStatus(id uuid.UUID, status string) error {
+	query := `UPDATE users SET status = $1 WHERE id = $2 AND role_id = 2`
+	_, err := r.DB.Exec(query, status, id)
+	return err
+}
