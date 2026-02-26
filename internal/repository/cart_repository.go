@@ -132,3 +132,9 @@ func (r *CartRepository) GetCartWithItemsTx(tx *sqlx.Tx, cartID uuid.UUID) ([]do
 	err := tx.Select(&items, query, cartID)
 	return items, err
 }
+
+func (r *CartRepository) UpdateApotekID(cartID string, apotekID string) error {
+	query := `UPDATE cart SET apotek_id = $1 WHERE id = $2`
+	_, err := r.DB.Exec(query, uuid.MustParse(apotekID), uuid.MustParse(cartID))
+	return err
+}

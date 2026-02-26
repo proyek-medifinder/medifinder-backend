@@ -32,7 +32,6 @@ func (s *PaymentService) HandleNotification(
 		return err
 	}
 
-	// Idempotent safety
 	if currentStatus == "paid" {
 		return tx.Commit()
 	}
@@ -76,7 +75,6 @@ func (s *PaymentService) HandleNotification(
 		}
 
 	default:
-		// Ignore unknown status
 	}
 
 	return tx.Commit()

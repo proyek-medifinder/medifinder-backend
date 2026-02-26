@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"time"
 
@@ -46,7 +45,15 @@ func (s *CartService) AddToCart(userID, obatID string, jumlah int) error {
 	}
 
 	if cart.ApotekID != obat.ApotekID {
-		return errors.New("tidak bisa campur apotek berbeda")
+		items, err := s.CartRepo.GetCartItems(cart.ID.String())
+		if err == nil && len(items) == 0 {
+			if err := s.CartRepo.UpdateApotekID(cart.ID.String(), obat.ApotekID.String()); err != nil {
+				return errors.New("gagal mengupdate data keranjang")
+			}
+			cart.ApotekID = obat.ApotekID
+		} else {
+			return errors.New("tidak bisa campur apotek berbeda")
+		}
 	}
 
 	item, err := s.CartRepo.FindItem(cart.ID.String(), obatID)
@@ -181,52 +188,61 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	var total int64 = 0
+	transaksiID := uuid.New()
+	expiredAt := time.Now().Add(15 * time.Minute)
 
+	// Buat struct penampung sementara untuk insert detail nanti
+	type DetailData struct {
+		ObatID uuid.UUID
+		Jumlah int
+		Harga  int64
+	}
+	var detailsToInsert []DetailData
+
+	// 1. Loop utama: Cek stok, hitung total, dan KURANGI STOK (Reserve Stock)
 	for _, item := range items {
+		var obat domain.Obat
 
-		obat, err := s.ObatRepo.FindByID(item.ObatID.String())
+		// Gunakan tx.Get dan FOR UPDATE untuk mencegah overselling (Race Condition)
+		err = tx.Get(&obat, "SELECT id, apotek_id, nama, stok, harga FROM obat WHERE id=$1 FOR UPDATE", item.ObatID)
+		if err != nil {
+			return "", "", "", errors.New("gagal mengambil data obat")
+		}
+
+		if item.Jumlah > obat.Stok {
+			return "", "", "", errors.New("stok tidak cukup untuk obat: " + obat.Nama)
+		}
+
+		total += obat.Harga * int64(item.Jumlah)
+
+		// RESERVE STOCK: Langsung kurangi stok di database sekarang juga
+		_, err = tx.Exec("UPDATE obat SET stok = stok - $1 WHERE id = $2", item.Jumlah, item.ObatID)
 		if err != nil {
 			return "", "", "", err
 		}
 
-		if item.Jumlah > obat.Stok {
-			return "", "", "", errors.New("stok tidak cukup")
-		}
-
-		total += obat.Harga * int64(item.Jumlah)
+		detailsToInsert = append(detailsToInsert, DetailData{
+			ObatID: item.ObatID,
+			Jumlah: item.Jumlah,
+			Harga:  obat.Harga,
+		})
 	}
 
-	transaksiID := uuid.New()
-	expiredAt := time.Now().Add(15 * time.Minute)
-
+	// 2. Insert tabel transaksi
 	_, err = tx.Exec(`
 	INSERT INTO transaksi (id, user_id, apotek_id, total, expired_at)
 	VALUES ($1, $2, $3, $4, $5)
-	`,
-		transaksiID,
-		uuid.MustParse(userID),
-		cart.ApotekID,
-		total,
-		expiredAt,
-	)
+	`, transaksiID, uuid.MustParse(userID), cart.ApotekID, total, expiredAt)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	for _, item := range items {
-
-		obat, _ := s.ObatRepo.FindByID(item.ObatID.String())
-
+	// 3. Insert tabel detail_transaksi
+	for _, d := range detailsToInsert {
 		_, err = tx.Exec(`
 		INSERT INTO detail_transaksi (id, transaksi_id, obat_id, jumlah, harga)
 		VALUES ($1, $2, $3, $4, $5)
-		`,
-			uuid.New(),
-			transaksiID,
-			item.ObatID,
-			item.Jumlah,
-			obat.Harga,
-		)
+		`, uuid.New(), transaksiID, d.ObatID, d.Jumlah, d.Harga)
 		if err != nil {
 			return "", "", "", err
 		}
@@ -242,11 +258,8 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	// ================= MIDTRANS SNAP =================
-
 	var snapClient snap.Client
-
 	isProduction := os.Getenv("MIDTRANS_IS_PRODUCTION") == "true"
-
 	if isProduction {
 		snapClient.New(os.Getenv("MIDTRANS_SERVER_KEY"), midtrans.Production)
 	} else {
@@ -259,9 +272,6 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 			GrossAmt: total,
 		},
 	}
-
-	fmt.Println("ORDER ID:", transaksiID.String())
-	fmt.Println("SERVER KEY:", os.Getenv("MIDTRANS_SERVER_KEY"))
 
 	snapResp, midtransErr := snapClient.CreateTransaction(req)
 	if midtransErr != nil {
