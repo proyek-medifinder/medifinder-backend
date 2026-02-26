@@ -52,12 +52,13 @@ func (h *PaymentHandler) Notification(c *gin.Context) {
 		FraudStatus       string `json:"fraud_status"`
 	}
 
-	// bind JSON langsung
 	if err := c.ShouldBindJSON(&req); err != nil {
 		fmt.Println("❌ invalid JSON payload:", err)
 		c.JSON(200, gin.H{"message": "ignored"})
 		return
 	}
+
+	fmt.Printf("📦 WEBHOOK DARI MIDTRANS: %+v\n", req)
 
 	// validasi field wajib
 	if req.OrderID == "" || req.SignatureKey == "" {
@@ -66,14 +67,12 @@ func (h *PaymentHandler) Notification(c *gin.Context) {
 		return
 	}
 
-	// verifikasi signature
 	if !verifyMidtransSignature(req, os.Getenv("MIDTRANS_SERVER_KEY")) {
 		fmt.Println("❌ invalid signature:", req.OrderID)
 		c.JSON(200, gin.H{"message": "invalid signature"})
 		return
 	}
 
-	// proses notifikasi
 	if err := h.Service.HandleNotification(
 		req.OrderID,
 		req.TransactionStatus,
