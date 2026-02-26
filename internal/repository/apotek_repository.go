@@ -30,24 +30,38 @@ func (r *ApotekRepository) FindByAdmin(adminID string) (*domain.Apotek, error) {
 	return &apotek, nil
 }
 
-func (r *ObatRepository) FindByApotekPaginated(apotekID string, limit, offset int) ([]domain.Obat, error) {
+func (r *ObatRepository) FindByApotekPaginated(apotekID string, name string, limit int, offset int) ([]domain.Obat, error) {
 	var obat []domain.Obat
-	query := `
-	SELECT id, apotek_id, nama, stok, harga
-	FROM obat
-	WHERE apotek_id=$1
-	ORDER BY nama ASC
-	LIMIT $2 OFFSET $3
-	`
-	err := r.DB.Select(&obat, query, apotekID, limit, offset)
+	var query string
+	var args []interface{}
+
+	if name != "" {
+		query = `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1 AND nama ILIKE $2 LIMIT $3 OFFSET $4`
+		args = []interface{}{apotekID, "%" + name + "%", limit, offset}
+	} else {
+		query = `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1 LIMIT $2 OFFSET $3`
+		args = []interface{}{apotekID, limit, offset}
+	}
+
+	err := r.DB.Select(&obat, query, args...)
 	return obat, err
 }
 
-func (r *ObatRepository) CountByApotek(apotekID string) (int, error) {
-	var total int
-	query := `SELECT COUNT(*) FROM obat WHERE apotek_id=$1`
-	err := r.DB.Get(&total, query, apotekID)
-	return total, err
+func (r *ObatRepository) CountByApotek(apotekID string, name string) (int, error) {
+	var count int
+	var query string
+	var args []interface{}
+
+	if name != "" {
+		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1 AND nama ILIKE $2`
+		args = []interface{}{apotekID, "%" + name + "%"}
+	} else {
+		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1`
+		args = []interface{}{apotekID}
+	}
+
+	err := r.DB.Get(&count, query, args...)
+	return count, err
 }
 
 func (r *ApotekRepository) Update(apotek *domain.Apotek) error {

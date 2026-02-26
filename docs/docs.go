@@ -268,6 +268,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "string",
+                        "description": "Search by Name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
                         "type": "integer",
                         "description": "Page",
                         "name": "page",
@@ -668,6 +674,18 @@ const docTemplate = `{
                 }
             }
         },
+        "/register-admin": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Registrasi Mandiri Admin Apotek",
+                "responses": {}
+            }
+        },
         "/resep": {
             "post": {
                 "security": [
@@ -892,6 +910,9 @@ const docTemplate = `{
         "dto.AuthResponse": {
             "type": "object",
             "properties": {
+                "email": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string",
                     "example": "Budi"

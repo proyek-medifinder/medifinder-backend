@@ -40,18 +40,18 @@ func (s *ObatService) GetMyObat(adminID string) ([]domain.Obat, error) {
 	if err != nil {
 		return nil, errors.New("admin has no apotek")
 	}
-	
+
 	return s.ObatRepo.FindByApotek(apotek.ID.String())
 }
 
-func (s *ObatService) GetPublicByApotek(apotekID string, limit, offset int) ([]domain.Obat, int, error) {
+func (s *ObatService) GetPublicByApotek(apotekID string, name string, limit, offset int) ([]domain.Obat, int, error) {
 
-	obat, err := s.ObatRepo.FindByApotekPaginated(apotekID, limit, offset)
+	obat, err := s.ObatRepo.FindByApotekPaginated(apotekID, name, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	total, err := s.ObatRepo.CountByApotek(apotekID)
+	total, err := s.ObatRepo.CountByApotek(apotekID, name)
 	if err != nil {
 		return nil, 0, err
 	}

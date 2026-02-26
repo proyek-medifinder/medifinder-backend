@@ -32,6 +32,8 @@ definitions:
     type: object
   dto.AuthResponse:
     properties:
+      email:
+        type: string
       name:
         example: Budi
         type: string
@@ -357,6 +359,10 @@ paths:
         name: id
         required: true
         type: string
+      - description: Search by Name
+        in: query
+        name: name
+        type: string
       - description: Page
         in: query
         name: page
@@ -628,6 +634,14 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Registrasi user
+      tags:
+      - Auth
+  /register-admin:
+    post:
+      produces:
+      - application/json
+      responses: {}
+      summary: Registrasi Mandiri Admin Apotek
       tags:
       - Auth
   /resep:

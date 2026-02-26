@@ -94,6 +94,7 @@ func (h *ObatHandler) Delete(c *gin.Context) {
 // @Summary Lihat daftar obat di apotek tertentu (Public)
 // @Tags Obat
 // @Param id path string true "Apotek ID"
+// @Param name query string false "Search by Name"  <-- Tambahin baris dokumentasi ini buat Swagger
 // @Param page query int false "Page"
 // @Param limit query int false "Limit"
 // @Success 200 {object} map[string]interface{}
@@ -102,9 +103,11 @@ func (h *ObatHandler) GetByApotekPublic(c *gin.Context) {
 
 	apotekID := c.Param("id")
 
+	name := c.Query("name")
+
 	limit, offset := utils.GetPagination(c)
 
-	obat, total, err := h.Service.GetPublicByApotek(apotekID, limit, offset)
+	obat, total, err := h.Service.GetPublicByApotek(apotekID, name, limit, offset)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to fetch data"})
 		return
