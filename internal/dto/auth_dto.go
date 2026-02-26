@@ -30,3 +30,8 @@ type ResetPasswordRequest struct {
 type GoogleLoginRequest struct {
 	Token string `json:"token" binding:"required"`
 }
+
+type ChangePasswordRequest struct {
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required,min=6"` // min=6 artinya minimal 6 karakter
+}

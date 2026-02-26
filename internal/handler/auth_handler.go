@@ -150,21 +150,17 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Param request body map[string]string true "Password lama dan baru (old_password, new_password)"
+// @Param request body dto.ChangePasswordRequest true "Password lama dan baru"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Router /change-password [put]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	// Ambil ID dari token JWT (Middleware lu udah otomatis nyimpen ini di context)
 	userID := c.GetString("user_id")
 
-	var req struct {
-		OldPassword string `json:"old_password"`
-		NewPassword string `json:"new_password"`
-	}
+	var req dto.ChangePasswordRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Format input tidak valid"})
+		c.JSON(400, gin.H{"error": "Format input tidak valid atau password kurang dari 6 karakter"})
 		return
 	}
 

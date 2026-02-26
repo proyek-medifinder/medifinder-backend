@@ -70,6 +70,18 @@ definitions:
       total:
         type: number
     type: object
+  dto.ChangePasswordRequest:
+    properties:
+      new_password:
+        description: min=6 artinya minimal 6 karakter
+        minLength: 6
+        type: string
+      old_password:
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
   dto.CheckoutResponse:
     properties:
       message:
@@ -520,6 +532,35 @@ paths:
       summary: Update jumlah item keranjang
       tags:
       - Cart
+  /change-password:
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Password lama dan baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ubah password user yang sedang login
+      tags:
+      - Auth
   /forgot-password:
     post:
       consumes:
