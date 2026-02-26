@@ -144,6 +144,38 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah, silakan login kembali"})
 }
 
+// ChangePassword godoc
+// @Summary Ubah password user yang sedang login
+// @Tags Auth
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body map[string]string true "Password lama dan baru (old_password, new_password)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /change-password [put]
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	// Ambil ID dari token JWT (Middleware lu udah otomatis nyimpen ini di context)
+	userID := c.GetString("user_id")
+
+	var req struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Format input tidak valid"})
+		return
+	}
+
+	if err := h.Service.ChangePassword(userID, req.OldPassword, req.NewPassword); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"message": "Password berhasil diubah"})
+}
+
 // @Summary Registrasi Mandiri Admin Apotek
 // @Tags Auth
 // @Produce json

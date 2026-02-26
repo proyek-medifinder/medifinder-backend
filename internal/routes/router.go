@@ -158,5 +158,12 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		superAdminGroup.POST("/verifikasi", superAdminHandler.VerifyAdmin)
 	}
 
+	// ================= AUTH PROTECTED (SEMUA ROLE) =================
+	protectedAuth := r.Group("/")
+	protectedAuth.Use(middleware.AuthMiddleware()) // Wajib masukin Token JWT!
+	{
+		protectedAuth.PUT("/change-password", authHandler.ChangePassword)
+	}
+
 	return r
 }

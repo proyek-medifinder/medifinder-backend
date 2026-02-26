@@ -107,6 +107,20 @@ func (r *UserRepository) ClearResetToken(id uuid.UUID, newPassword string) error
 	return err
 }
 
+// =============== FITUR GANTI PASSWORD ======================
+func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
+	var user domain.User
+	query := `SELECT id, password FROM users WHERE id = $1 AND deleted_at IS NULL`
+	err := r.DB.Get(&user, query, id)
+	return &user, err
+}
+
+func (r *UserRepository) UpdatePassword(id uuid.UUID, newPassword string) error {
+	query := `UPDATE users SET password = $1 WHERE id = $2`
+	_, err := r.DB.Exec(query, newPassword, id)
+	return err
+}
+
 // ================ FITUR VERIFIKASI ADMIN OLEH SUPERADMIN =================
 func (r *UserRepository) FindPendingAdmins(limit, offset int) ([]domain.User, int, error) {
 	var list []domain.User

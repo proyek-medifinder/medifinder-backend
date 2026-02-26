@@ -206,3 +206,32 @@ func (s *AuthService) RegisterAdmin(name, email, password string) error {
 
 	return s.UserRepo.Create(user)
 }
+
+func (s *AuthService) ChangePassword(userIDStr, oldPassword, newPassword string) error {
+	// 1. Ubah string ID dari token jadi tipe UUID
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return errors.New("ID user tidak valid")
+	}
+
+	// 2. Cari user-nya di database
+	user, err := s.UserRepo.FindByID(userID)
+	if err != nil {
+		return errors.New("user tidak ditemukan")
+	}
+
+	// 3. Cocokkan password lama (Hash vs Plain Text)
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	if err != nil {
+		return errors.New("password lama salah")
+	}
+
+	// 4. Kalau bener, Hash password yang baru
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// 5. Simpan ke database
+	return s.UserRepo.UpdatePassword(userID, string(hashedPassword))
+}
