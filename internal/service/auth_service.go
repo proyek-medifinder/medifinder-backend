@@ -198,9 +198,8 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 
 	m.SetBody("text/html", htmlBody)
 
-	d := gomail.NewDialer("smtp.gmail.com", 587, "cs.medifinder@gmail.com", "dpadilvjgnposebt")
+	d := gomail.NewDialer("smtp.gmail.com", 465, "cs.medifinder@gmail.com", "dpadilvjgnposebt")
 
-	// 3. Kirim emailnya
 	if err := d.DialAndSend(m); err != nil {
 		log.Println("❌ GAGAL kirim email ke", toEmail, "Error:", err)
 	} else {
