@@ -12,6 +12,10 @@ type AuthHandler struct {
 	Service *service.AuthService
 }
 
+func NewAuthHandler(s *service.AuthService) *AuthHandler {
+	return &AuthHandler{Service: s}
+}
+
 // Register godoc
 // @Summary Registrasi user
 // @Tags Auth
@@ -98,78 +102,48 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-// ForgotPassword godoc
-// @Summary Request reset password
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body dto.ForgotPasswordRequest true "Email user"
-// @Success 200 {object} map[string]interface{}
-// @Router /forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
-	var req dto.ForgotPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	var req struct {
+		Email string `json:"email"`
 	}
 
-	if err := h.Service.ForgotPassword(req); err != nil { // Pakai h.Service
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	c.ShouldBindJSON(&req)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Instruksi reset password telah dikirim ke email"})
+	h.Service.ForgotPassword(req.Email)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Jika email terdaftar, link reset telah dikirim",
+	})
 }
 
-// ResetPassword godoc
-// @Summary Reset password dengan token
-// @Tags Auth
-// @Accept json
-// @Produce json
-// @Param request body dto.ResetPasswordRequest true "Token & password baru"
-// @Success 200 {object} map[string]interface{}
-// @Router /reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
-	var req dto.ResetPasswordRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var req struct {
+		Token       string `json:"token"`
+		NewPassword string `json:"new_password"`
+	}
+
+	c.ShouldBindJSON(&req)
+
+	err := h.Service.ResetPassword(req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "token tidak valid"})
 		return
 	}
 
-	if err := h.Service.ResetPassword(req); err != nil { // Pakai h.Service
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diubah, silakan login kembali"})
+	c.JSON(200, gin.H{"message": "password berhasil direset"})
 }
 
-// ChangePassword godoc
-// @Summary Ubah password user yang sedang login
-// @Tags Auth
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param request body dto.ChangePasswordRequest true "Password lama dan baru"
-// @Success 200 {object} map[string]interface{}
-// @Failure 400 {object} map[string]interface{}
-// @Router /change-password [put]
 func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	userID := c.GetString("user_id")
-
-	var req dto.ChangePasswordRequest
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Format input tidak valid atau password kurang dari 6 karakter"})
-		return
+	var req struct {
+		Email       string `json:"email"`
+		NewPassword string `json:"new_password"`
 	}
 
-	if err := h.Service.ChangePassword(userID, req.OldPassword, req.NewPassword); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
+	c.ShouldBindJSON(&req)
 
-	c.JSON(200, gin.H{"message": "Password berhasil diubah"})
+	h.Service.ChangePassword(req.Email, req.NewPassword)
+
+	c.JSON(200, gin.H{"message": "password berhasil diganti"})
 }
 
 // @Summary Registrasi Mandiri Admin Apotek

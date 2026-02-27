@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -160,32 +159,14 @@ func generateRandomToken() string {
 	return hex.EncodeToString(bytes)
 }
 
-func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
-	user, err := s.UserRepo.FindByEmail(req.Email)
-	if err != nil || user == nil {
-		return errors.New("email tidak terdaftar")
-	}
-
-	token := generateRandomToken()
-	expiry := time.Now().Add(1 * time.Hour)
-
-	err = s.UserRepo.UpdateResetToken(req.Email, token, expiry)
-	if err != nil {
-		return err
-	}
-
-	go s.sendEmailGomail(req.Email, token)
-
-	return nil
-}
-
 func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 	m := gomail.NewMessage()
 	m.SetHeader("From", "cs.medifinder@gmail.com")
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", "Reset Password Akun Medifinder")
 
-	resetLink := fmt.Sprintf("http://localhost:3000/reset-password?token=%s", token)
+	baseURL := os.Getenv("http://localhost:3000")
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
 
 	htmlBody := fmt.Sprintf(`
 		<h3>Halo,</h3>
@@ -198,7 +179,12 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 
 	m.SetBody("text/html", htmlBody)
 
-	d := gomail.NewDialer("smtp.gmail.com", 465, "cs.medifinder@gmail.com", "dpadilvjgnposebt")
+	d := gomail.NewDialer(
+		os.Getenv("SMTP_HOST"),
+		465,
+		os.Getenv("SMTP_EMAIL"),
+		os.Getenv("SMTP_PASS"),
+	)
 
 	if err := d.DialAndSend(m); err != nil {
 		log.Println("❌ GAGAL kirim email ke", toEmail, "Error:", err)
@@ -207,25 +193,57 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 	}
 }
 
-func (s *AuthService) ResetPassword(req dto.ResetPasswordRequest) error {
-	user, err := s.UserRepo.FindByResetToken(req.Token)
-	if err != nil || user == nil {
-		return errors.New("token tidak valid atau tidak ditemukan")
-	}
+func (s *AuthService) ForgotPassword(email string) {
+	token, _ := utils.GenerateResetToken(email)
 
-	if time.Now().After(*user.ResetTokenExpiry) {
-		return errors.New("token sudah kedaluwarsa")
-	}
+	resetLink := fmt.Sprintf(
+		"%s/reset-password?token=%s",
+		os.Getenv("APP_URL"),
+		token,
+	)
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
+	body := fmt.Sprintf(`
+	<h2>Reset Password</h2>
+	<p>Klik link di bawah:</p>
+	<a href="%s">Reset Password</a>
+	<p>Link berlaku 15 menit.</p>
+	`, resetLink)
 
-	return s.UserRepo.ClearResetToken(user.ID, string(hashedPassword))
+	utils.SendEmail(email, "Reset Password", body)
 }
 
-// ================ FITUR REGISTER ADMIN APOTEK (SUPERADMIN) =================
+func (s *AuthService) ResetPassword(token, newPassword string) error {
+
+	email, err := utils.VerifyResetToken(token)
+	if err != nil {
+		return fmt.Errorf("token tidak valid")
+	}
+
+	fmt.Println("Update password untuk:", email, "password:", newPassword)
+
+	s.sendPasswordChangedEmail(email)
+
+	return nil
+}
+
+// 👉 Change Password (user login)
+func (s *AuthService) ChangePassword(email, newPassword string) error {
+
+	fmt.Println("password diganti:", email)
+
+	s.sendPasswordChangedEmail(email)
+
+	return nil
+}
+
+func (s *AuthService) sendPasswordChangedEmail(email string) {
+	body := `
+	<h3>Password berhasil diubah</h3>
+	<p>Jika ini bukan Anda, segera ubah password.</p>
+	`
+	utils.SendEmail(email, "Password Berhasil Diubah", body)
+}
+
 func (s *AuthService) RegisterAdmin(name, email, password string) error {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
@@ -239,33 +257,4 @@ func (s *AuthService) RegisterAdmin(name, email, password string) error {
 	}
 
 	return s.UserRepo.Create(user)
-}
-
-func (s *AuthService) ChangePassword(userIDStr, oldPassword, newPassword string) error {
-	// 1. Ubah string ID dari token jadi tipe UUID
-	userID, err := uuid.Parse(userIDStr)
-	if err != nil {
-		return errors.New("ID user tidak valid")
-	}
-
-	// 2. Cari user-nya di database
-	user, err := s.UserRepo.FindByID(userID)
-	if err != nil {
-		return errors.New("user tidak ditemukan")
-	}
-
-	// 3. Cocokkan password lama (Hash vs Plain Text)
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
-	if err != nil {
-		return errors.New("password lama salah")
-	}
-
-	// 4. Kalau bener, Hash password yang baru
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	// 5. Simpan ke database
-	return s.UserRepo.UpdatePassword(userID, string(hashedPassword))
 }
