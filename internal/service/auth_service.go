@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gopkg.in/gomail.v2"
 
 	"github.com/sasaefulanwar/medifinder/internal/domain"
 	"github.com/sasaefulanwar/medifinder/internal/dto"
@@ -129,9 +131,6 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 	if user.Status == "rejected" {
 		return nil, errors.New("pendaftaran akun anda ditolak")
 	}
-	if user.Status == "suspended" {
-		return nil, errors.New("akun anda telah dinonaktifkan oleh Super Admin")
-	}
 
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
 
@@ -175,8 +174,38 @@ func (s *AuthService) ForgotPassword(req dto.ForgotPasswordRequest) error {
 		return err
 	}
 
-	log.Printf("BOHONG-BOHONGAN KIRIM EMAIL: Klik link ini untuk reset password -> http://localhost:8080/reset-password?token=%s\n", token)
+	go s.sendEmailGomail(req.Email, token)
+
 	return nil
+}
+
+func (s *AuthService) sendEmailGomail(toEmail string, token string) {
+	m := gomail.NewMessage()
+	m.SetHeader("From", "cs.medifinder@gmail.com")
+	m.SetHeader("To", toEmail)
+	m.SetHeader("Subject", "Reset Password Akun Medifinder")
+
+	resetLink := fmt.Sprintf("http://localhost:3000/reset-password?token=%s", token)
+
+	htmlBody := fmt.Sprintf(`
+		<h3>Halo,</h3>
+		<p>Kami menerima permintaan untuk mereset password akun Medifinder Anda.</p>
+		<p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
+		<a href="%s" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+		<br><br>
+		<p>Jika Anda tidak pernah meminta reset password, abaikan email ini.</p>
+	`, resetLink)
+
+	m.SetBody("text/html", htmlBody)
+
+	d := gomail.NewDialer("smtp.gmail.com", 587, "cs.medifinder@gmail.com", "dpadilvjgnposebt")
+
+	// 3. Kirim emailnya
+	if err := d.DialAndSend(m); err != nil {
+		log.Println("❌ GAGAL kirim email ke", toEmail, "Error:", err)
+	} else {
+		log.Println("✅ SUKSES kirim email reset password ke:", toEmail)
+	}
 }
 
 func (s *AuthService) ResetPassword(req dto.ResetPasswordRequest) error {
