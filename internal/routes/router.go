@@ -163,8 +163,6 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	protectedAuth := r.Group("/")
 	protectedAuth.Use(middleware.AuthMiddleware()) // Wajib masukin Token JWT!
 	{
-		protectedAuth.POST("/forgot-password", authHandler.ForgotPassword)
-		protectedAuth.POST("/reset-password", authHandler.ResetPassword)
 		protectedAuth.POST("/change-password", authHandler.ChangePassword)
 	}
 
