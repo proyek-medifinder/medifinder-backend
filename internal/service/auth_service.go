@@ -54,6 +54,9 @@ func (s *AuthService) Login(email, password string) (*dto.AuthResponse, error) {
 	if user.Status == "rejected" {
 		return nil, errors.New("pendaftaran akun anda ditolak")
 	}
+	if user.Status == "suspended" {
+		return nil, errors.New("akun anda telah dinonaktifkan oleh Super Admin")
+	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
@@ -125,6 +128,9 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 	}
 	if user.Status == "rejected" {
 		return nil, errors.New("pendaftaran akun anda ditolak")
+	}
+	if user.Status == "suspended" {
+		return nil, errors.New("akun anda telah dinonaktifkan oleh Super Admin")
 	}
 
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
