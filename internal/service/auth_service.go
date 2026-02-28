@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -165,7 +166,11 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", "Reset Password Akun Medifinder")
 
-	baseURL := os.Getenv("http://localhost:3000")
+	// Perbaikan os.Getenv
+	baseURL := os.Getenv("APP_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:3000"
+	}
 	resetLink := fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
 
 	htmlBody := fmt.Sprintf(`
@@ -179,9 +184,16 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 
 	m.SetBody("text/html", htmlBody)
 
+	// Ambil port dari .env, default ke 465 jika tidak diset
+	portStr := os.Getenv("SMTP_PORT")
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port == 0 {
+		port = 465
+	}
+
 	d := gomail.NewDialer(
 		os.Getenv("SMTP_HOST"),
-		465,
+		port,
 		os.Getenv("SMTP_EMAIL"),
 		os.Getenv("SMTP_PASS"),
 	)
@@ -196,9 +208,14 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 func (s *AuthService) ForgotPassword(email string) {
 	token, _ := utils.GenerateResetToken(email)
 
+	baseURL := os.Getenv("APP_URL")
+	if baseURL == "" {
+		baseURL = "http://localhost:3000"
+	}
+
 	resetLink := fmt.Sprintf(
 		"%s/reset-password?token=%s",
-		os.Getenv("APP_URL"),
+		baseURL,
 		token,
 	)
 
@@ -213,23 +230,50 @@ func (s *AuthService) ForgotPassword(email string) {
 }
 
 func (s *AuthService) ResetPassword(token, newPassword string) error {
-
 	email, err := utils.VerifyResetToken(token)
 	if err != nil {
-		return fmt.Errorf("token tidak valid")
+		return fmt.Errorf("token tidak valid atau sudah kadaluarsa")
 	}
 
-	fmt.Println("Update password untuk:", email, "password:", newPassword)
+	user, err := s.UserRepo.FindByEmail(email)
+	if err != nil {
+		return fmt.Errorf("user tidak ditemukan")
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("gagal memproses password baru")
+	}
+
+	err = s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
+	if err != nil {
+		return fmt.Errorf("gagal menyimpan password ke database")
+	}
+
+	log.Println("✅ Password berhasil direset untuk email:", email)
 
 	s.sendPasswordChangedEmail(email)
 
 	return nil
 }
 
-// 👉 Change Password (user login)
 func (s *AuthService) ChangePassword(email, newPassword string) error {
+	user, err := s.UserRepo.FindByEmail(email)
+	if err != nil {
+		return fmt.Errorf("user tidak ditemukan")
+	}
 
-	fmt.Println("password diganti:", email)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("gagal memproses password baru")
+	}
+
+	err = s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
+	if err != nil {
+		return fmt.Errorf("gagal menyimpan password ke database")
+	}
+
+	log.Println("✅ Password berhasil diganti untuk email:", email)
 
 	s.sendPasswordChangedEmail(email)
 
@@ -239,7 +283,7 @@ func (s *AuthService) ChangePassword(email, newPassword string) error {
 func (s *AuthService) sendPasswordChangedEmail(email string) {
 	body := `
 	<h3>Password berhasil diubah</h3>
-	<p>Jika ini bukan Anda, segera ubah password.</p>
+	<p>Jika ini bukan Anda, segera hubungi admin atau ubah password Anda kembali.</p>
 	`
 	utils.SendEmail(email, "Password Berhasil Diubah", body)
 }
@@ -252,8 +296,8 @@ func (s *AuthService) RegisterAdmin(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
-		RoleID:   2,         // Role 2 = Admin Apotek
-		Status:   "pending", // Default status: Belum Terverifikasi
+		RoleID:   2,
+		Status:   "pending",
 	}
 
 	return s.UserRepo.Create(user)
