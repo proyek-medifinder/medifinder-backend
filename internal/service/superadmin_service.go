@@ -18,7 +18,6 @@ func (s *SuperAdminService) ListAdmin(limit, offset int) ([]domain.User, int, er
 }
 
 func (s *SuperAdminService) CreateAdmin(name, email, password string) error {
-
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 
 	user := &domain.User{
@@ -26,7 +25,7 @@ func (s *SuperAdminService) CreateAdmin(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
-		RoleID:   2,
+		RoleID:   RoleAdminUUID,
 	}
 
 	return s.UserRepo.CreateAdmin(user)

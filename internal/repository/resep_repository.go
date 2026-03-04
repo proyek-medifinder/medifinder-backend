@@ -11,18 +11,15 @@ type ResepRepository struct {
 }
 
 func (r *ResepRepository) Create(resep *domain.Resep) error {
-
 	query := `
-	INSERT INTO resep (id, user_id, file_path)
+	INSERT INTO resep (id, transaksi_id, file_path)
 	VALUES ($1, $2, $3)
 	`
-
 	_, err := r.DB.Exec(query,
 		resep.ID,
-		resep.UserID,
+		resep.TransaksiID,
 		resep.FilePath,
 	)
-
 	return err
 }
 
@@ -38,7 +35,6 @@ func (r *ResepRepository) UpdateStatus(id uuid.UUID, status string) error {
 }
 
 func (r *ResepRepository) FindAll(limit, offset int) ([]domain.Resep, int, error) {
-
 	var list []domain.Resep
 	var total int
 
@@ -48,7 +44,7 @@ func (r *ResepRepository) FindAll(limit, offset int) ([]domain.Resep, int, error
 	}
 
 	err = r.DB.Select(&list, `
-		SELECT id, user_id, file_path, status, created_at
+		SELECT id, transaksi_id, file_path, created_at
 		FROM resep
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2

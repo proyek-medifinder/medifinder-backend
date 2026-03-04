@@ -22,6 +22,12 @@ import (
 	"google.golang.org/api/idtoken"
 )
 
+var (
+	RoleUserUUID       = uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	RoleAdminUUID      = uuid.MustParse("22222222-2222-2222-2222-222222222222")
+	RoleSuperAdminUUID = uuid.MustParse("33333333-3333-3333-3333-333333333333")
+)
+
 type AuthService struct {
 	UserRepo *repository.UserRepository
 }
@@ -34,7 +40,7 @@ func (s *AuthService) Register(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
-		RoleID:   1,
+		RoleID:   RoleUserUUID,
 		Status:   "approved",
 	}
 
@@ -68,10 +74,9 @@ func (s *AuthService) Login(email, password string) (*dto.AuthResponse, error) {
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
 
 	role := "user"
-	if user.RoleID == 2 {
+	if user.RoleID == RoleAdminUUID {
 		role = "admin_apotek"
-	}
-	if user.RoleID == 3 {
+	} else if user.RoleID == RoleSuperAdminUUID {
 		role = "super_admin"
 	}
 
@@ -113,7 +118,7 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 			Name:     name,
 			Email:    email,
 			Password: string(hashed),
-			RoleID:   1,
+			RoleID:   RoleUserUUID,
 			GoogleID: &googleID,
 			Status:   "approved",
 		}
@@ -135,9 +140,9 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
 
 	role := "user"
-	if user.RoleID == 2 {
+	if user.RoleID == RoleAdminUUID {
 		role = "admin_apotek"
-	} else if user.RoleID == 3 {
+	} else if user.RoleID == RoleSuperAdminUUID {
 		role = "super_admin"
 	}
 
@@ -296,7 +301,7 @@ func (s *AuthService) RegisterAdmin(name, email, password string) error {
 		Name:     name,
 		Email:    email,
 		Password: string(hashed),
-		RoleID:   2,
+		RoleID:   RoleAdminUUID,
 		Status:   "pending",
 	}
 

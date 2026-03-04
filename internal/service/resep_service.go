@@ -10,12 +10,11 @@ type ResepService struct {
 	Repo *repository.ResepRepository
 }
 
-func (s *ResepService) Create(userID string, filePath string) error {
-
+func (s *ResepService) Create(transaksiID string, filePath string) error {
 	resep := &domain.Resep{
-		ID:       uuid.New(),
-		UserID:   uuid.MustParse(userID),
-		FilePath: filePath,
+		ID:          uuid.New(),
+		TransaksiID: uuid.MustParse(transaksiID), // Berubah dari UserID
+		FilePath:    filePath,
 	}
 
 	return s.Repo.Create(resep)
