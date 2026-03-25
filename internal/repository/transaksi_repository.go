@@ -43,9 +43,9 @@ func (r *TransaksiRepository) FindByUser(
 		return nil, 0, err
 	}
 
-	// data query
+	// data query yang udah diupdate (Hapus expired_at, tambah token & url)
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total, status, expired_at, created_at
+	SELECT id, user_id, apotek_id, total, status, snap_token, payment_url, created_at, updated_at
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -53,6 +53,7 @@ func (r *TransaksiRepository) FindByUser(
 
 	args = append(args, limit, offset)
 
+	// Nah, variabel dataQuery dipake di sini cuy. Kalo ini ilang, Go bakal error.
 	err = r.DB.Select(&list, dataQuery, args...)
 	if err != nil {
 		return nil, 0, err
@@ -86,7 +87,7 @@ func (r *TransaksiRepository) FindAllWithCount(
 	}
 
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total, status, expired_at, created_at
+	SELECT id, user_id, apotek_id, total, status, snap_token, payment_url, created_at, updated_at
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -132,7 +133,7 @@ func (r *TransaksiRepository) FindByApotekWithCount(
 	}
 
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total, status, expired_at, created_at
+	SELECT id, user_id, apotek_id, total, status, snap_token, payment_url, created_at, updated_at
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +

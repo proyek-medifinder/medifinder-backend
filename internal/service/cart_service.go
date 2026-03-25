@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"os"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/midtrans/midtrans-go"
@@ -189,9 +188,7 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 
 	var total int64 = 0
 	transaksiID := uuid.New()
-	expiredAt := time.Now().Add(15 * time.Minute)
 
-	// Buat struct penampung sementara untuk insert detail nanti
 	type DetailData struct {
 		ObatID uuid.UUID
 		Jumlah int
@@ -199,7 +196,6 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 	var detailsToInsert []DetailData
 
-	// 1. Loop utama: Cek stok, hitung total, dan KURANGI STOK (Reserve Stock)
 	for _, item := range items {
 		var obat domain.Obat
 
@@ -229,10 +225,11 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	// 2. Insert tabel transaksi
+	// 2. Insert tabel transaksi (HAPUS expired_at karena udah gak ada di DB)
 	_, err = tx.Exec(`
-	INSERT INTO transaksi (id, user_id, apotek_id, total, expired_at)
-	VALUES ($1, $2, $3, $4, $5)
-	`, transaksiID, uuid.MustParse(userID), cart.ApotekID, total, expiredAt)
+	INSERT INTO transaksi (id, user_id, apotek_id, total)
+	VALUES ($1, $2, $3, $4)
+	`, transaksiID, uuid.MustParse(userID), cart.ApotekID, total)
 	if err != nil {
 		return "", "", "", err
 	}
@@ -248,16 +245,14 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		}
 	}
 
-	_, err = tx.Exec(`DELETE FROM cart_items WHERE cart_id=$1`, cart.ID)
+	// HAPUS cart_item (TYPO FIX: nama tabel di DB lu itu cart_item, bukan cart_items)
+	_, err = tx.Exec(`DELETE FROM cart_item WHERE cart_id=$1`, cart.ID)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	if err := tx.Commit(); err != nil {
-		return "", "", "", err
-	}
-
 	// ================= MIDTRANS SNAP =================
+	// Kita pindahin Midtrans ke atas SANGAT PENTING sebelum tx.Commit()
 	var snapClient snap.Client
 	isProduction := os.Getenv("MIDTRANS_IS_PRODUCTION") == "true"
 	if isProduction {
@@ -278,5 +273,21 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		return "", "", "", midtransErr
 	}
 
+	// 4. UPDATE transaksi buat nyimpen Token & URL dari Midtrans
+	_, err = tx.Exec(`
+		UPDATE transaksi
+		SET snap_token = $1, payment_url = $2
+		WHERE id = $3
+	`, snapResp.Token, snapResp.RedirectURL, transaksiID)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// 5. COMMIT SEMUA TRANSAKSI KE DATABASE
+	if err := tx.Commit(); err != nil {
+		return "", "", "", err
+	}
+
 	return transaksiID.String(), snapResp.Token, snapResp.RedirectURL, nil
+
 }

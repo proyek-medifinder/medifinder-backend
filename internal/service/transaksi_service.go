@@ -28,7 +28,8 @@ func (s *TransaksiService) CancelExpiredTransactions() error {
 		SELECT id
 		FROM transaksi
 		WHERE status = 'pending'
-		AND expired_at < NOW()
+		-- Ini logikanya: cari transaksi yang dibuat lebih dari 15 menit yang lalu
+		AND created_at < NOW() - INTERVAL '15 minutes' 
 	`)
 	if err != nil {
 		return err
