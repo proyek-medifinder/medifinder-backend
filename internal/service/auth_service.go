@@ -210,6 +210,29 @@ func (s *AuthService) sendEmailGomail(toEmail string, token string) {
 	}
 }
 
+func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
+	user, err := s.UserRepo.GetUserProfile(userID)
+	if err != nil {
+		return nil, errors.New("user tidak ditemukan")
+	}
+
+	// Terjemahkan Role UUID ke String biar frontend gampang bacanya
+	role := "user"
+	if user.RoleID == RoleAdminUUID {
+		role = "admin_apotek"
+	} else if user.RoleID == RoleSuperAdminUUID {
+		role = "super_admin"
+	}
+
+	return map[string]interface{}{
+		"id":     user.ID,
+		"name":   user.Name,
+		"email":  user.Email,
+		"role":   role,
+		"status": user.Status,
+	}, nil
+}
+
 func (s *AuthService) ForgotPassword(email string) {
 	token, _ := utils.GenerateResetToken(email)
 
@@ -228,7 +251,7 @@ func (s *AuthService) ForgotPassword(email string) {
 	<h2>Reset Password</h2>
 	<p>Klik link di bawah:</p>
 	<a href="%s">Reset Password</a>
-	<p>Link berlaku 15 menit.</p>
+	<p>Link berlaku selama 1 jam.</p> 
 	`, resetLink)
 
 	utils.SendEmail(email, "Reset Password", body)

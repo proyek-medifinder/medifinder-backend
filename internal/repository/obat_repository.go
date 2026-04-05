@@ -24,27 +24,23 @@ func (r *ObatRepository) Create(obat *domain.Obat) error {
 
 func (r *ObatRepository) FindByApotek(apotekID string) ([]domain.Obat, error) {
 	var obat []domain.Obat
-	query := `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1`
+	query := `SELECT id, apotek_id, nama, stok, harga::INT FROM obat WHERE apotek_id=$1`
 	err := r.DB.Select(&obat, query, apotekID)
 	return obat, err
 }
 
 func (r *ObatRepository) FindByID(id string) (*domain.Obat, error) {
-
 	var obat domain.Obat
 
-	uuidID, err := uuid.Parse(id)
+	parsedID, err := uuid.Parse(strings.TrimSpace(id))
 	if err != nil {
 		return nil, err
 	}
 
-	query := `
-	SELECT id, apotek_id, nama, stok, harga
-	FROM obat
-	WHERE id=$1
-	`
+	// Tambahin ::INT di kolom harga biar gak bentrok sama int64 di Go
+	query := `SELECT id, apotek_id, nama, stok, harga::INT FROM obat WHERE id = $1`
+	err = r.DB.Get(&obat, query, parsedID)
 
-	err = r.DB.Get(&obat, query, uuidID)
 	if err != nil {
 		return nil, err
 	}
@@ -75,4 +71,3 @@ func (r *ObatRepository) Delete(id string) error {
 
 	return nil
 }
-

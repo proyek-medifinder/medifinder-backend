@@ -17,8 +17,20 @@ type CartService struct {
 }
 
 func (s *CartService) AddToCart(userID, obatID string, jumlah int) error {
+	// 1. Validasi userID (Biar gak crash kalau kosong)
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return errors.New("user id tidak valid atau belum login")
+	}
 
-	obat, err := s.ObatRepo.FindByID(obatID)
+	// 2. Validasi obatID
+	obatUUID, err := uuid.Parse(obatID)
+	if err != nil {
+		return errors.New("obat id tidak valid")
+	}
+
+	// 3. Cari obat (Ganti pemanggilan ke repo pake obatUUID)
+	obat, err := s.ObatRepo.FindByID(obatUUID.String())
 	if err != nil {
 		return errors.New("obat not found")
 	}
@@ -27,12 +39,13 @@ func (s *CartService) AddToCart(userID, obatID string, jumlah int) error {
 		return errors.New("stok tidak cukup")
 	}
 
-	cart, err := s.CartRepo.FindByUser(userID)
+	// 4. Cari keranjang (Ganti pemanggilan ke repo pake userUUID)
+	cart, err := s.CartRepo.FindByUser(userUUID.String())
 
 	if err != nil {
 		newCart := &domain.Cart{
 			ID:       uuid.New(),
-			UserID:   uuid.MustParse(userID),
+			UserID:   userUUID, // Pake yang udah di-parse tadi
 			ApotekID: obat.ApotekID,
 		}
 

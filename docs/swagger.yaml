@@ -9,15 +9,6 @@ definitions:
         example: true
         type: boolean
     type: object
-  dto.AddCartRequest:
-    properties:
-      jumlah:
-        example: 2
-        type: integer
-      obat_id:
-        example: 1
-        type: integer
-    type: object
   dto.AdminRequest:
     properties:
       email:
@@ -44,56 +35,6 @@ definitions:
         example: jwt_token_here
         type: string
     type: object
-  dto.CartItemResponse:
-    properties:
-      harga:
-        type: number
-      id:
-        type: integer
-      jumlah:
-        type: integer
-      nama_obat:
-        type: string
-      obat_id:
-        type: integer
-      subtotal:
-        type: number
-    type: object
-  dto.CartResponse:
-    properties:
-      apotek_id:
-        type: string
-      items:
-        items:
-          $ref: '#/definitions/dto.CartItemResponse'
-        type: array
-      total:
-        type: number
-    type: object
-  dto.ChangePasswordRequest:
-    properties:
-      new_password:
-        description: min=6 artinya minimal 6 karakter
-        minLength: 6
-        type: string
-      old_password:
-        type: string
-    required:
-    - new_password
-    - old_password
-    type: object
-  dto.CheckoutResponse:
-    properties:
-      message:
-        example: checkout berhasil
-        type: string
-      redirect_url:
-        type: string
-      snap_token:
-        type: string
-      transaksi_id:
-        type: string
-    type: object
   dto.ErrorResponse:
     properties:
       message:
@@ -102,13 +43,6 @@ definitions:
       success:
         example: false
         type: boolean
-    type: object
-  dto.ForgotPasswordRequest:
-    properties:
-      email:
-        type: string
-    required:
-    - email
     type: object
   dto.GoogleLoginRequest:
     properties:
@@ -194,23 +128,6 @@ definitions:
       status:
         type: string
       transaksi_id:
-        type: integer
-    type: object
-  dto.ResetPasswordRequest:
-    properties:
-      new_password:
-        minLength: 6
-        type: string
-      token:
-        type: string
-    required:
-    - new_password
-    - token
-    type: object
-  dto.UpdateCartRequest:
-    properties:
-      jumlah:
-        example: 3
         type: integer
     type: object
   dto.UpdateResepStatusRequest:
@@ -408,181 +325,6 @@ paths:
       summary: Mencari Apotek Terdekat & Buka
       tags:
       - Apotek
-  /cart:
-    get:
-      description: Mengambil keranjang aktif milik user
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.CartResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Lihat keranjang aktif
-      tags:
-      - Cart
-  /cart/checkout:
-    post:
-      description: Membuat transaksi dan menghasilkan token pembayaran
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.CheckoutResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Checkout keranjang
-      tags:
-      - Checkout
-  /cart/items:
-    post:
-      consumes:
-      - application/json
-      description: Menambahkan obat ke keranjang user. Keranjang hanya boleh dari
-        1 apotek.
-      parameters:
-      - description: Data item keranjang
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.AddCartRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.APIResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Tambah obat ke keranjang
-      tags:
-      - Cart
-  /cart/items/{id}:
-    delete:
-      description: Menghapus item obat dari keranjang user
-      parameters:
-      - description: Cart Item ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.APIResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Hapus item dari keranjang
-      tags:
-      - Cart
-    put:
-      consumes:
-      - application/json
-      description: Mengubah jumlah obat dalam keranjang
-      parameters:
-      - description: Cart Item ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Jumlah baru
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.UpdateCartRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/dto.APIResponse'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/dto.ErrorResponse'
-      security:
-      - BearerAuth: []
-      summary: Update jumlah item keranjang
-      tags:
-      - Cart
-  /change-password:
-    put:
-      consumes:
-      - application/json
-      parameters:
-      - description: Password lama dan baru
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ChangePasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Ubah password user yang sedang login
-      tags:
-      - Auth
-  /forgot-password:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Email user
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ForgotPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Request reset password
-      tags:
-      - Auth
   /google-login:
     post:
       consumes:
@@ -628,6 +370,21 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Login user
+      tags:
+      - Auth
+  /me:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil profil user yang sedang login
       tags:
       - Auth
   /payment/notify:
@@ -712,28 +469,6 @@ paths:
       summary: Upload resep dokter
       tags:
       - Resep
-  /reset-password:
-    post:
-      consumes:
-      - application/json
-      parameters:
-      - description: Token & password baru
-        in: body
-        name: request
-        required: true
-        schema:
-          $ref: '#/definitions/dto.ResetPasswordRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Reset password dengan token
-      tags:
-      - Auth
   /superadmin/admin:
     get:
       responses: {}

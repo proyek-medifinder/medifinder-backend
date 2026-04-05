@@ -9,20 +9,9 @@ type CartHandler struct {
 	Service *service.CartService
 }
 
-// AddToCart godoc
-// @Summary Tambah obat ke keranjang
-// @Description Menambahkan obat ke keranjang user. Keranjang hanya boleh dari 1 apotek.
-// @Tags Cart
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param request body dto.AddCartRequest true "Data item keranjang"
-// @Success 200 {object} dto.APIResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Router /cart/items [post]
 func (h *CartHandler) AddToCart(c *gin.Context) {
-
-	userID := c.GetString("user_id")
+	// Ganti "user_id" jadi "id" biar sesuai middleware
+	userID := c.GetString("id")
 
 	var req struct {
 		ObatID string `json:"obat_id"`
@@ -43,18 +32,9 @@ func (h *CartHandler) AddToCart(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "added to cart"})
 }
 
-// GetCart godoc
-// @Summary Lihat keranjang aktif
-// @Description Mengambil keranjang aktif milik user
-// @Tags Cart
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} dto.CartResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Router /cart [get]
 func (h *CartHandler) GetCart(c *gin.Context) {
-
-	userID := c.GetString("user_id")
+	// Ganti "user_id" jadi "id"
+	userID := c.GetString("id")
 
 	data, err := h.Service.GetCart(userID)
 	if err != nil {
@@ -65,21 +45,9 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 	c.JSON(200, data)
 }
 
-// UpdateCartItem godoc
-// @Summary Update jumlah item keranjang
-// @Description Mengubah jumlah obat dalam keranjang
-// @Tags Cart
-// @Security BearerAuth
-// @Accept json
-// @Produce json
-// @Param id path int true "Cart Item ID"
-// @Param request body dto.UpdateCartRequest true "Jumlah baru"
-// @Success 200 {object} dto.APIResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Router /cart/items/{id} [put]
 func (h *CartHandler) UpdateItem(c *gin.Context) {
-
-	userID := c.GetString("user_id")
+	// Ganti "user_id" jadi "id"
+	userID := c.GetString("id")
 	itemID := c.Param("id")
 
 	var req struct {
@@ -100,19 +68,9 @@ func (h *CartHandler) UpdateItem(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "item updated"})
 }
 
-// DeleteCartItem godoc
-// @Summary Hapus item dari keranjang
-// @Description Menghapus item obat dari keranjang user
-// @Tags Cart
-// @Security BearerAuth
-// @Produce json
-// @Param id path int true "Cart Item ID"
-// @Success 200 {object} dto.APIResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Router /cart/items/{id} [delete]
 func (h *CartHandler) DeleteItem(c *gin.Context) {
-
-	userID := c.GetString("user_id")
+	// Ganti "user_id" jadi "id"
+	userID := c.GetString("id")
 	itemID := c.Param("id")
 
 	err := h.Service.DeleteItem(userID, itemID)
@@ -124,18 +82,8 @@ func (h *CartHandler) DeleteItem(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "item deleted"})
 }
 
-// Checkout godoc
-// @Summary Checkout keranjang
-// @Description Membuat transaksi dan menghasilkan token pembayaran
-// @Tags Checkout
-// @Security BearerAuth
-// @Produce json
-// @Success 200 {object} dto.CheckoutResponse
-// @Failure 400 {object} dto.ErrorResponse
-// @Router /cart/checkout [post]
 func (h *CartHandler) Checkout(c *gin.Context) {
-
-	userID := c.GetString("user_id")
+	userID := c.GetString("id")
 
 	transaksiID, snapToken, redirectURL, err := h.Service.Checkout(userID)
 	if err != nil {

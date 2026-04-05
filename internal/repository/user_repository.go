@@ -14,6 +14,17 @@ type UserRepository struct {
 	DB *sqlx.DB
 }
 
+func (r *UserRepository) GetUserProfile(id uuid.UUID) (*domain.User, error) {
+	var user domain.User
+	query := `
+		SELECT id, name, email, role_id, status, created_at, updated_at 
+		FROM users 
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+	err := r.DB.Get(&user, query, id)
+	return &user, err
+}
+
 func (r *UserRepository) Create(user *domain.User) error {
 	query := `
 	INSERT INTO users (id, name, email, password, role_id, google_id, status)

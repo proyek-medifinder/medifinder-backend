@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 )
@@ -165,5 +166,46 @@ func (h *AuthHandler) RegisterAdmin(c *gin.Context) {
 
 	c.JSON(201, gin.H{
 		"message": "Registrasi Admin Apotek berhasil. Silakan tunggu verifikasi dari Super Admin sebelum dapat login.",
+	})
+}
+
+// GetMe godoc
+// @Summary Ambil profil user yang sedang login
+// @Tags Auth
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Router /me [get]
+func (h *AuthHandler) GetMe(c *gin.Context) {
+	// Ambil user_id hasil ekstraksi JWT dari middleware
+	userIDClaim, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	// Parse claim token ke string lalu ke UUID
+	userIDStr, ok := userIDClaim.(string)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "format token user_id tidak valid"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "format UUID tidak valid"})
+		return
+	}
+
+	// Panggil service
+	userData, err := h.Service.GetMe(userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "success",
+		"data":    userData,
 	})
 }
