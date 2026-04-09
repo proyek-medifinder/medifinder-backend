@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
 	"github.com/sasaefulanwar/medifinder/internal/repository"
+	"github.com/sasaefulanwar/medifinder/internal/utils"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -43,6 +44,22 @@ func (s *SuperAdminService) GetPendingAdmins(limit, offset int) ([]domain.User, 
 	return s.UserRepo.FindPendingAdmins(limit, offset)
 }
 
+func (s *SuperAdminService) ChangeAdminStatus(adminID string, status string) error {
+	id, err := uuid.Parse(adminID)
+	if err != nil {
+		return errors.New("format ID admin tidak valid")
+	}
+
+	// Validasi input status biar nggak diisi sembarangan
+	if status != "approved" && status != "suspended" {
+		return errors.New("status hanya bisa 'approved' atau 'suspended'")
+	}
+
+	return s.UserRepo.UpdateAdminStatus(id, status)
+}
+
+// Pastikan package utils juga di-import di atas: "github.com/sasaefulanwar/medifinder/internal/utils"
+
 func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, notes string) error {
 	if action != "approved" && action != "rejected" {
 		return errors.New("action harus 'approved' atau 'rejected'")
@@ -62,19 +79,29 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 		return errors.New("invalid super admin ID")
 	}
 
-	return s.UserRepo.VerifyAdmin(adminID, superAdminID, action, notes)
-}
-
-func (s *SuperAdminService) ChangeAdminStatus(adminID string, status string) error {
-	id, err := uuid.Parse(adminID)
+	// Ambil email admin buat dikirimin notifikasi nanti
+	adminData, err := s.UserRepo.GetUserProfile(adminID)
 	if err != nil {
-		return errors.New("format ID admin tidak valid")
+		return errors.New("admin tidak ditemukan")
 	}
 
-	// Validasi input status biar nggak diisi sembarangan
-	if status != "approved" && status != "suspended" {
-		return errors.New("status hanya bisa 'approved' atau 'suspended'")
+	// Eksekusi Transaction
+	err = s.UserRepo.ProcessAdminVerificationTx(adminID, superAdminID, action, notes)
+	if err != nil {
+		return err
 	}
 
-	return s.UserRepo.UpdateAdminStatus(id, status)
+	// Kirim Email Hasil Verifikasi
+	var subject, body string
+	if action == "approved" {
+		subject = "Selamat! Akun Admin Medifinder Disetujui"
+		body = "Aplikasi apotek Anda telah disetujui. Anda sekarang bisa login dan mulai mengelola stok obat."
+	} else {
+		subject = "Mohon Maaf, Pendaftaran Admin Ditolak"
+		body = "Pendaftaran apotek Anda ditolak dengan alasan: " + notes + ". Silakan daftar kembali dengan data yang valid."
+	}
+
+	go utils.SendEmail(adminData.Email, subject, body)
+
+	return nil
 }

@@ -470,6 +470,10 @@ const docTemplate = `{
         },
         "/register-admin": {
             "post": {
+                "description": "Pendaftaran mandiri untuk Admin Apotek beserta data apoteknya",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -477,7 +481,40 @@ const docTemplate = `{
                     "Auth"
                 ],
                 "summary": "Registrasi Mandiri Admin Apotek",
-                "responses": {}
+                "parameters": [
+                    {
+                        "description": "Data Registrasi Admin Apotek",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.RegisterAdminRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/resep": {
@@ -558,6 +595,100 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {}
+            }
+        },
+        "/superadmin/admin/pending": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "Ambil daftar admin apotek yang masih pending (butuh verifikasi)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 1,
+                        "description": "Halaman (default 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Jumlah data per halaman (default 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/admin/verify": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin"
+                ],
+                "summary": "Verifikasi pendaftaran admin apotek (Approve / Reject)",
+                "parameters": [
+                    {
+                        "description": "Data Verifikasi (Action: approved/rejected)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.VerifyAdminRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/superadmin/admin/{id}/status": {
@@ -836,6 +967,49 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RegisterAdminRequest": {
+            "type": "object",
+            "required": [
+                "alamat",
+                "email",
+                "latitude",
+                "longitude",
+                "nama_apotek",
+                "name",
+                "password",
+                "phone_number"
+            ],
+            "properties": {
+                "alamat": {
+                    "type": "string"
+                },
+                "deskripsi": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "nama_apotek": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 6
+                },
+                "phone_number": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.RegisterRequest": {
             "type": "object",
             "properties": {
@@ -879,6 +1053,28 @@ const docTemplate = `{
                 "status": {
                     "type": "string",
                     "example": "approved"
+                }
+            }
+        },
+        "dto.VerifyAdminRequest": {
+            "type": "object",
+            "required": [
+                "action",
+                "admin_id"
+            ],
+            "properties": {
+                "action": {
+                    "description": "approved atau rejected",
+                    "type": "string",
+                    "example": "approved"
+                },
+                "admin_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Dokumen apotek valid dan lengkap"
                 }
             }
         }

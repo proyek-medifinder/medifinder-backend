@@ -102,6 +102,16 @@ func (h *SuperAdminHandler) DeleteAdmin(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "admin deleted"})
 }
 
+// GetPendingAdmins godoc
+// @Summary Ambil daftar admin apotek yang masih pending (butuh verifikasi)
+// @Tags SuperAdmin
+// @Security BearerAuth
+// @Produce json
+// @Param page query int false "Halaman (default 1)" default(1)
+// @Param limit query int false "Jumlah data per halaman (default 10)" default(10)
+// @Success 200 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /superadmin/admin/pending [get]
 func (h *SuperAdminHandler) GetPendingAdmins(c *gin.Context) {
 	page, limit, offset := utils.GetPaginationAdvanced(c)
 
@@ -117,6 +127,16 @@ func (h *SuperAdminHandler) GetPendingAdmins(c *gin.Context) {
 	})
 }
 
+// VerifyAdmin godoc
+// @Summary Verifikasi pendaftaran admin apotek (Approve / Reject)
+// @Tags SuperAdmin
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param request body dto.VerifyAdminRequest true "Data Verifikasi (Action: approved/rejected)"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /superadmin/admin/verify [post]
 func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
 	// Ambil ID Super Admin yang lagi login dari token JWT
 	superAdminID := c.GetString("user_id")

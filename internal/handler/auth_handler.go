@@ -147,26 +147,34 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "password berhasil diganti"})
 }
 
+// RegisterAdmin godoc
 // @Summary Registrasi Mandiri Admin Apotek
+// @Description Pendaftaran mandiri untuk Admin Apotek beserta data apoteknya
 // @Tags Auth
+// @Accept json
 // @Produce json
+// @Param request body dto.RegisterAdminRequest true "Data Registrasi Admin Apotek"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Router /register-admin [post]
 func (h *AuthHandler) RegisterAdmin(c *gin.Context) {
-	var req dto.RegisterRequest
+	// Pake DTO yang baru kita bikin
+	var req dto.RegisterAdminRequest
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "Format data tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Data tidak lengkap atau tidak valid: " + err.Error()})
 		return
 	}
 
-	err := h.Service.RegisterAdmin(req.Name, req.Email, req.Password)
+	// Masukin variabel req langsung ke service
+	err := h.Service.RegisterAdmin(req)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Gagal mendaftarkan admin apotek: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mendaftar: " + err.Error()})
 		return
 	}
 
-	c.JSON(201, gin.H{
-		"message": "Registrasi Admin Apotek berhasil. Silakan tunggu verifikasi dari Super Admin sebelum dapat login.",
-	})
+	c.JSON(http.StatusCreated, gin.H{"message": "Pendaftaran Admin Apotek berhasil diajukan, silakan tunggu verifikasi."})
 }
 
 // GetMe godoc

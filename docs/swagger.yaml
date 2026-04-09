@@ -107,6 +107,37 @@ definitions:
       transaction_status:
         type: string
     type: object
+  dto.RegisterAdminRequest:
+    properties:
+      alamat:
+        type: string
+      deskripsi:
+        type: string
+      email:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      nama_apotek:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      phone_number:
+        type: string
+    required:
+    - alamat
+    - email
+    - latitude
+    - longitude
+    - nama_apotek
+    - name
+    - password
+    - phone_number
+    type: object
   dto.RegisterRequest:
     properties:
       email:
@@ -137,6 +168,22 @@ definitions:
         type: string
     required:
     - status
+    type: object
+  dto.VerifyAdminRequest:
+    properties:
+      action:
+        description: approved atau rejected
+        example: approved
+        type: string
+      admin_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      notes:
+        example: Dokumen apotek valid dan lengkap
+        type: string
+    required:
+    - action
+    - admin_id
     type: object
 host: localhost:8080
 info:
@@ -436,9 +483,34 @@ paths:
       - Auth
   /register-admin:
     post:
+      consumes:
+      - application/json
+      description: Pendaftaran mandiri untuk Admin Apotek beserta data apoteknya
+      parameters:
+      - description: Data Registrasi Admin Apotek
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterAdminRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
       summary: Registrasi Mandiri Admin Apotek
       tags:
       - Auth
@@ -527,6 +599,66 @@ paths:
       summary: Ubah status admin apotek (Suspend / Activate)
       tags:
       - Super Admin
+  /superadmin/admin/pending:
+    get:
+      parameters:
+      - default: 1
+        description: Halaman (default 1)
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Jumlah data per halaman (default 10)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Ambil daftar admin apotek yang masih pending (butuh verifikasi)
+      tags:
+      - SuperAdmin
+  /superadmin/admin/verify:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: 'Data Verifikasi (Action: approved/rejected)'
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.VerifyAdminRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verifikasi pendaftaran admin apotek (Approve / Reject)
+      tags:
+      - SuperAdmin
   /transaksi:
     get:
       parameters:

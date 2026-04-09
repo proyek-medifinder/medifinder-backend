@@ -17,7 +17,7 @@ type UserRepository struct {
 func (r *UserRepository) GetUserProfile(id uuid.UUID) (*domain.User, error) {
 	var user domain.User
 	query := `
-		SELECT id, name, email, role_id, status, created_at, updated_at 
+		SELECT id, name, email, role_id, status, profile_picture, created_at, updated_at 
 		FROM users 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -190,4 +190,99 @@ func (r *UserRepository) UpdateAdminStatus(id uuid.UUID, status string) error {
 	query := `UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND role_id = $3 AND deleted_at IS NULL`
 	_, err := r.DB.Exec(query, status, id, RoleAdminUUID)
 	return err
+}
+
+// ================= FITUR ADMIN APOTEK REGISTER =================
+
+// 1. Transaction untuk Registrasi Admin
+func (r *UserRepository) RegisterAdminTx(user *domain.User, app *domain.AdminApplication) error {
+	tx, err := r.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() // Otomatis rollback kalau ada error sebelum di-commit
+
+	// Insert ke tabel users
+	_, err = tx.NamedExec(`
+		INSERT INTO users (id, name, email, password, role_id, status, created_at, updated_at)
+		VALUES (:id, :name, :email, :password, :role_id, :status, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`, user)
+	if err != nil {
+		return err
+	}
+
+	// Insert ke tabel admin_applications
+	_, err = tx.NamedExec(`
+		INSERT INTO admin_applications (id, user_id, nama_apotek, alamat, latitude, longitude, phone_number, deskripsi, status, submitted_at)
+		VALUES (:id, :user_id, :nama_apotek, :alamat, :latitude, :longitude, :phone_number, :deskripsi, :status, CURRENT_TIMESTAMP)
+	`, app)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
+}
+
+// 2. Transaction untuk Verifikasi oleh Super Admin
+func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.UUID, action, reason string) error {
+	tx, err := r.DB.Beginx()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// Ambil data aplikasi admin
+	var app domain.AdminApplication
+	err = tx.Get(&app, `SELECT * FROM admin_applications WHERE user_id = $1 ORDER BY submitted_at DESC LIMIT 1`, adminID)
+	if err != nil {
+		return err // Berarti aplikasinya gak ketemu
+	}
+
+	userStatus := "rejected"
+	appStatus := "REJECTED"
+	var rejectionReason *string
+
+	if action == "approved" {
+		userStatus = "active" // Sesuai enum SRS baru (aktif, bukan approved)
+		appStatus = "APPROVED"
+
+		// Insert ke tabel Apotek kalau di-approve
+		_, err = tx.Exec(`
+			INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, verification_status, created_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'APPROVED', CURRENT_TIMESTAMP)
+		`, uuid.New(), adminID, app.NamaApotek, app.Alamat, app.Latitude, app.Longitude, app.PhoneNumber, app.Deskripsi)
+
+		if err != nil {
+			return err
+		}
+	} else {
+		rejectionReason = &reason
+	}
+
+	// Update status di admin_applications
+	_, err = tx.Exec(`
+		UPDATE admin_applications 
+		SET status = $1, rejection_reason = $2, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $3
+		WHERE id = $4
+	`, appStatus, rejectionReason, superAdminID, app.ID)
+	if err != nil {
+		return err
+	}
+
+	// Update status di users
+	_, err = tx.Exec(`UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`, userStatus, adminID)
+	if err != nil {
+		return err
+	}
+
+	// Insert Log Verifikasi
+	_, err = tx.Exec(`
+		INSERT INTO verification_logs (id, admin_id, superadmin_id, action, notes)
+		VALUES ($1, $2, $3, $4, $5)
+	`, uuid.New(), adminID, superAdminID, action, reason)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }

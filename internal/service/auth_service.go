@@ -216,7 +216,6 @@ func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
 		return nil, errors.New("user tidak ditemukan")
 	}
 
-	// Terjemahkan Role UUID ke String biar frontend gampang bacanya
 	role := "user"
 	if user.RoleID == RoleAdminUUID {
 		role = "admin_apotek"
@@ -225,11 +224,13 @@ func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
 	}
 
 	return map[string]interface{}{
-		"id":     user.ID,
-		"name":   user.Name,
-		"email":  user.Email,
-		"role":   role,
-		"status": user.Status,
+		"id":              user.ID,
+		"name":            user.Name,
+		"email":           user.Email,
+		"role":            role,
+		"status":          user.Status,
+		"profile_picture": user.ProfilePicture,
+		"google_id":       user.GoogleID,
 	}, nil
 }
 
@@ -316,17 +317,40 @@ func (s *AuthService) sendPasswordChangedEmail(email string) {
 	utils.SendEmail(email, "Password Berhasil Diubah", body)
 }
 
-func (s *AuthService) RegisterAdmin(name, email, password string) error {
-	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
+	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	userID := uuid.New()
 
 	user := &domain.User{
-		ID:       uuid.New(),
-		Name:     name,
-		Email:    email,
+		ID:       userID,
+		Name:     req.Name,
+		Email:    req.Email,
 		Password: string(hashed),
 		RoleID:   RoleAdminUUID,
 		Status:   "pending",
 	}
 
-	return s.UserRepo.Create(user)
+	app := &domain.AdminApplication{
+		ID:          uuid.New(),
+		UserID:      userID,
+		NamaApotek:  req.NamaApotek,
+		Alamat:      req.Alamat,
+		Latitude:    req.Latitude,
+		Longitude:   req.Longitude,
+		PhoneNumber: req.PhoneNumber,
+		Deskripsi:   req.Deskripsi,
+		Status:      "PENDING",
+	}
+
+	// Panggil repository transaction
+	err := s.UserRepo.RegisterAdminTx(user, app)
+	if err != nil {
+		return err
+	}
+
+	// (Opsional) Kirim Email Pemberitahuan
+	emailBody := "Pendaftaran Admin Apotek Anda berhasil diajukan. Mohon tunggu verifikasi dari Super Admin maksimal 2x24 jam."
+	utils.SendEmail(req.Email, "Pendaftaran Admin Medifinder Diterima", emailBody)
+
+	return nil
 }
