@@ -16,6 +16,43 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/admin/apotek": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil data lengkap apotek yang dikelola oleh admin yang sedang login",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Apotek"
+                ],
+                "summary": "Melihat Profil Apotek Saya (Admin Only)",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Apotek"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "put": {
                 "produces": [
                     "application/json"
@@ -226,18 +263,6 @@ const docTemplate = `{
                     "Admin Transaksi"
                 ],
                 "summary": "Riwayat transaksi masuk (Admin Apotek)",
-                "responses": {}
-            }
-        },
-        "/apotek/me": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Apotek"
-                ],
-                "summary": "Melihat Apotek Saya",
                 "responses": {}
             }
         },
@@ -597,7 +622,63 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/superadmin/admin/pending": {
+        "/superadmin/admin/{id}/status": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Super Admin"
+                ],
+                "summary": "Ubah status admin apotek (Suspend / Activate)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Admin Apotek",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status baru: 'approved' atau 'suspended'",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/pengajuan": {
             "get": {
                 "security": [
                     {
@@ -645,7 +726,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/superadmin/admin/verify": {
+        "/superadmin/verifikasi": {
             "post": {
                 "security": [
                     {
@@ -670,62 +751,6 @@ const docTemplate = `{
                         "required": true,
                         "schema": {
                             "$ref": "#/definitions/dto.VerifyAdminRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/superadmin/admin/{id}/status": {
-            "patch": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Super Admin"
-                ],
-                "summary": "Ubah status admin apotek (Suspend / Activate)",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "ID Admin Apotek",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Status baru: 'approved' atau 'suspended'",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 ],
@@ -810,6 +835,53 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "domain.Apotek": {
+            "type": "object",
+            "properties": {
+                "admin_id": {
+                    "type": "string"
+                },
+                "alamat": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "deskripsi": {
+                    "description": "Field Baru",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "jam_buka": {
+                    "type": "string"
+                },
+                "jam_tutup": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "nama": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "description": "Field Baru",
+                    "type": "string"
+                },
+                "rejection_reason": {
+                    "type": "string"
+                },
+                "verification_status": {
+                    "description": "APPROVED / REJECTED",
+                    "type": "string"
+                }
+            }
+        },
         "dto.APIResponse": {
             "type": "object",
             "properties": {

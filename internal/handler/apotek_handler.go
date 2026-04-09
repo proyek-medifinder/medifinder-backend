@@ -51,10 +51,16 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "apotek created"})
 }
 
-// @Summary Melihat Apotek Saya
-// @Tags Apotek
+// GetMyApotek godoc
+// @Summary Melihat Profil Apotek Saya (Admin Only)
+// @Description Mengambil data lengkap apotek yang dikelola oleh admin yang sedang login
+// @Tags Admin Apotek
+// @Security BearerAuth
 // @Produce json
-// @Router /apotek/me [get]
+// @Success 200 {object} domain.Apotek
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Router /admin/apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
 

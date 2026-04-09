@@ -111,7 +111,7 @@ func (h *SuperAdminHandler) DeleteAdmin(c *gin.Context) {
 // @Param limit query int false "Jumlah data per halaman (default 10)" default(10)
 // @Success 200 {object} map[string]interface{}
 // @Failure 500 {object} map[string]interface{}
-// @Router /superadmin/admin/pending [get]
+// @Router /superadmin/pengajuan [get]
 func (h *SuperAdminHandler) GetPendingAdmins(c *gin.Context) {
 	page, limit, offset := utils.GetPaginationAdvanced(c)
 
@@ -136,7 +136,7 @@ func (h *SuperAdminHandler) GetPendingAdmins(c *gin.Context) {
 // @Param request body dto.VerifyAdminRequest true "Data Verifikasi (Action: approved/rejected)"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
-// @Router /superadmin/admin/verify [post]
+// @Router /superadmin/verifikasi [post]
 func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
 	// Ambil ID Super Admin yang lagi login dari token JWT
 	superAdminID := c.GetString("user_id")

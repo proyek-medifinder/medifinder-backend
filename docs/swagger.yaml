@@ -1,4 +1,36 @@
 definitions:
+  domain.Apotek:
+    properties:
+      admin_id:
+        type: string
+      alamat:
+        type: string
+      created_at:
+        type: string
+      deskripsi:
+        description: Field Baru
+        type: string
+      id:
+        type: string
+      jam_buka:
+        type: string
+      jam_tutup:
+        type: string
+      latitude:
+        type: number
+      longitude:
+        type: number
+      nama:
+        type: string
+      phone_number:
+        description: Field Baru
+        type: string
+      rejection_reason:
+        type: string
+      verification_status:
+        description: APPROVED / REJECTED
+        type: string
+    type: object
   dto.APIResponse:
     properties:
       data: {}
@@ -193,6 +225,31 @@ info:
   version: "1.0"
 paths:
   /admin/apotek:
+    get:
+      description: Mengambil data lengkap apotek yang dikelola oleh admin yang sedang
+        login
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Apotek'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Melihat Profil Apotek Saya (Admin Only)
+      tags:
+      - Admin Apotek
     post:
       produces:
       - application/json
@@ -356,14 +413,6 @@ paths:
       summary: Lihat daftar obat di apotek tertentu (Public)
       tags:
       - Obat
-  /apotek/me:
-    get:
-      produces:
-      - application/json
-      responses: {}
-      summary: Melihat Apotek Saya
-      tags:
-      - Apotek
   /apotek/nearby:
     get:
       produces:
@@ -599,7 +648,7 @@ paths:
       summary: Ubah status admin apotek (Suspend / Activate)
       tags:
       - Super Admin
-  /superadmin/admin/pending:
+  /superadmin/pengajuan:
     get:
       parameters:
       - default: 1
@@ -630,7 +679,7 @@ paths:
       summary: Ambil daftar admin apotek yang masih pending (butuh verifikasi)
       tags:
       - SuperAdmin
-  /superadmin/admin/verify:
+  /superadmin/verifikasi:
     post:
       consumes:
       - application/json

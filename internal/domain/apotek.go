@@ -20,4 +20,5 @@ type Apotek struct {
 	VerificationStatus string    `db:"verification_status" json:"verification_status"` // APPROVED / REJECTED
 	RejectionReason    *string   `db:"rejection_reason" json:"rejection_reason,omitempty"`
 	CreatedAt          time.Time `db:"created_at" json:"created_at"`
+	Distance           *float64  `db:"distance" json:"distance,omitempty"`
 }

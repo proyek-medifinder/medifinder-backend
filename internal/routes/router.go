@@ -23,7 +23,9 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{
 			"http://localhost:3000",
-			"https://nonregressive-kyoko-supercelestially.ngrok-free.dev", // Sesuai yang di gambar tadi cuy
+			"http://127.0.0.1:3000",
+			"http://localhost:5173",
+			"https://nonregressive-kyoko-supercelestially.ngrok-free.dev",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "ngrok-skip-browser-warning"},
@@ -134,7 +136,6 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		adminGroup.PUT("/obat/:id", obatHandler.Update)
 		adminGroup.DELETE("/obat/:id", obatHandler.Delete)
 		// ++++++++++ APOTEK +++++++++++
-		adminGroup.POST("/apotek", apotekHandler.Create)
 		adminGroup.GET("/apotek", apotekHandler.GetMyApotek)
 		adminGroup.PUT("/apotek", apotekHandler.UpdateMyApotek)
 		// ++++++++++ TRANSAKSI +++++++++++

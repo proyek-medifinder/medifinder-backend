@@ -107,9 +107,10 @@ func (r *ApotekRepository) FindNearby(
 		)
 	) <= $3
 	AND (
-		(jam_buka <= jam_tutup AND $4::time >= jam_buka AND $4::time <= jam_tutup)
+		-- Tambahin ::time di setiap jam_buka dan jam_tutup
+		(jam_buka::time <= jam_tutup::time AND $4::time >= jam_buka::time AND $4::time <= jam_tutup::time)
 		OR
-		(jam_buka > jam_tutup AND ($4::time >= jam_buka OR $4::time <= jam_tutup))
+		(jam_buka::time > jam_tutup::time AND ($4::time >= jam_buka::time OR $4::time <= jam_tutup::time))
 	)
 	`
 
