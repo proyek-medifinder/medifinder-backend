@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
 )
@@ -18,11 +19,16 @@ func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 	return err
 }
 
-func (r *ApotekRepository) FindByAdmin(adminID string) (*domain.Apotek, error) {
+func (r *ApotekRepository) FindByAdmin(adminID uuid.UUID) (*domain.Apotek, error) {
 	var apotek domain.Apotek
-	query := `SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup 
-          FROM apotek 
-          WHERE admin_id = $1::uuid`
+
+	query := `
+		SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, 
+		       phone_number, deskripsi, verification_status, rejection_reason, created_at 
+		FROM apotek 
+		WHERE admin_id = $1
+	`
+
 	err := r.DB.Get(&apotek, query, adminID)
 	if err != nil {
 		return nil, err
@@ -77,7 +83,8 @@ func (r *ObatRepository) CountByApotek(apotekID string, name string) (int, error
 func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	query := `
 	UPDATE apotek 
-	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude, jam_buka=:jam_buka, jam_tutup=:jam_tutup
+	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude, 
+	    jam_buka=:jam_buka, jam_tutup=:jam_tutup, phone_number=:phone_number, deskripsi=:deskripsi
 	WHERE id=:id
 	`
 	_, err := r.DB.NamedExec(query, apotek)

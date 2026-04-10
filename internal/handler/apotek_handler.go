@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -62,15 +65,28 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 // @Failure 404 {object} map[string]interface{}
 // @Router /admin/apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
-	adminID := c.GetString("user_id")
+	adminIDStr := c.GetString("user_id")
 
-	apotek, err := h.Service.GetMyApotek(adminID)
+	adminID, err := uuid.Parse(adminIDStr)
 	if err != nil {
-		c.JSON(404, gin.H{"error": "not found"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid user ID format",
+		})
 		return
 	}
 
-	c.JSON(200, apotek)
+	apotek, err := h.Service.GetMyApotek(adminID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Apotek tidak ditemukan untuk admin ini",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "success",
+		"data":    apotek,
+	})
 }
 
 // @Summary Update Profil Apotek Sendiri
@@ -78,16 +94,17 @@ func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 // @Produce json
 // @Router /admin/apotek [put]
 func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
-	// Ambil ID admin dari token JWT yang lagi login
 	adminID := c.GetString("user_id")
 
 	var req struct {
-		Nama      string  `json:"nama"`
-		Alamat    string  `json:"alamat"`
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
-		JamBuka   string  `json:"jam_buka"`
-		JamTutup  string  `json:"jam_tutup"`
+		Nama        string  `json:"nama"`
+		Alamat      string  `json:"alamat"`
+		Latitude    float64 `json:"latitude"`
+		Longitude   float64 `json:"longitude"`
+		JamBuka     string  `json:"jam_buka"`
+		JamTutup    string  `json:"jam_tutup"`
+		PhoneNumber string  `json:"phone_number"` // Field baru
+		Deskripsi   string  `json:"deskripsi"`    // Field baru
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -95,7 +112,8 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.Update(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup)
+	// Panggil service dengan parameter lengkap
+	err := h.Service.Update(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup, req.PhoneNumber, req.Deskripsi)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return

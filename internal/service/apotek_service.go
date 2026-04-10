@@ -33,11 +33,11 @@ func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long fl
 	return s.Repo.Create(apotek)
 }
 
-func (s *ApotekService) GetMyApotek(adminID string) (*domain.Apotek, error) {
+func (s *ApotekService) GetMyApotek(adminID uuid.UUID) (*domain.Apotek, error) {
 	return s.Repo.FindByAdmin(adminID)
 }
 
-func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup string) error {
+func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup, phoneNumber, deskripsi string) error {
 	apotek, err := s.Repo.FindByAdmin(adminID)
 	if err != nil {
 		return err
@@ -49,6 +49,8 @@ func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long fl
 	apotek.Longitude = long
 	apotek.JamBuka = jamBuka
 	apotek.JamTutup = jamTutup
+	apotek.PhoneNumber = phoneNumber // Tambahan field baru
+	apotek.Deskripsi = &deskripsi    // Tambahan field baru (karena di domain pake pointer)
 
 	return s.Repo.Update(apotek)
 }

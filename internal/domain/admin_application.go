@@ -14,7 +14,7 @@ type AdminApplication struct {
 	Latitude        float64    `db:"latitude" json:"latitude"`
 	Longitude       float64    `db:"longitude" json:"longitude"`
 	PhoneNumber     string     `db:"phone_number" json:"phone_number"`
-	Deskripsi       string     `db:"deskripsi" json:"deskripsi"`
+	Deskripsi       *string    `db:"deskripsi" json:"deskripsi,omitempty"`
 	PhotoURL        *string    `db:"photo_url" json:"photo_url,omitempty"` // <--- TAMBAHIN BARIS INI
 	Status          string     `db:"status" json:"status"`                 // PENDING, APPROVED, REJECTED
 	RejectionReason *string    `db:"rejection_reason" json:"rejection_reason,omitempty"`

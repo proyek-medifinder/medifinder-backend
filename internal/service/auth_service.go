@@ -338,7 +338,6 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
 		PhoneNumber: req.PhoneNumber,
-		Deskripsi:   req.Deskripsi,
 		Status:      "PENDING",
 	}
 

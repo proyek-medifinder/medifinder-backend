@@ -223,7 +223,6 @@ func (r *UserRepository) RegisterAdminTx(user *domain.User, app *domain.AdminApp
 	return tx.Commit()
 }
 
-// 2. Transaction untuk Verifikasi oleh Super Admin
 func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.UUID, action, reason string) error {
 	tx, err := r.DB.Beginx()
 	if err != nil {
