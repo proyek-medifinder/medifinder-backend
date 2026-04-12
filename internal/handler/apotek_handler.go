@@ -1,12 +1,10 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -65,28 +63,15 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 // @Failure 404 {object} map[string]interface{}
 // @Router /admin/apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
-	adminIDStr := c.GetString("user_id")
+	adminID := c.GetString("user_id")
 
-	adminID, err := uuid.Parse(adminIDStr)
+	apotek, err := h.Service.GetByAdmin(adminID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid user ID format",
-		})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	apotek, err := h.Service.GetMyApotek(adminID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Apotek tidak ditemukan untuk admin ini",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "success",
-		"data":    apotek,
-	})
+	c.JSON(http.StatusOK, gin.H{"data": apotek})
 }
 
 // @Summary Update Profil Apotek Sendiri

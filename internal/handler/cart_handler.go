@@ -11,7 +11,7 @@ type CartHandler struct {
 
 func (h *CartHandler) AddToCart(c *gin.Context) {
 	// Ganti "user_id" jadi "id" biar sesuai middleware
-	userID := c.GetString("id")
+	userID := c.GetString("user_id")
 
 	var req struct {
 		ObatID string `json:"obat_id"`
@@ -34,7 +34,7 @@ func (h *CartHandler) AddToCart(c *gin.Context) {
 
 func (h *CartHandler) GetCart(c *gin.Context) {
 	// Ganti "user_id" jadi "id"
-	userID := c.GetString("id")
+	userID := c.GetString("user_id")
 
 	data, err := h.Service.GetCart(userID)
 	if err != nil {
@@ -46,8 +46,7 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 }
 
 func (h *CartHandler) UpdateItem(c *gin.Context) {
-	// Ganti "user_id" jadi "id"
-	userID := c.GetString("id")
+	userID := c.GetString("user_id")
 	itemID := c.Param("id")
 
 	var req struct {
@@ -70,7 +69,7 @@ func (h *CartHandler) UpdateItem(c *gin.Context) {
 
 func (h *CartHandler) DeleteItem(c *gin.Context) {
 	// Ganti "user_id" jadi "id"
-	userID := c.GetString("id")
+	userID := c.GetString("user_id")
 	itemID := c.Param("id")
 
 	err := h.Service.DeleteItem(userID, itemID)
@@ -83,7 +82,7 @@ func (h *CartHandler) DeleteItem(c *gin.Context) {
 }
 
 func (h *CartHandler) Checkout(c *gin.Context) {
-	userID := c.GetString("id")
+	userID := c.GetString("user_id")
 
 	transaksiID, snapToken, redirectURL, err := h.Service.Checkout(userID)
 	if err != nil {

@@ -15,7 +15,7 @@ type ObatService struct {
 
 func (s *ObatService) Create(adminID, nama string, stok int, harga int64) error {
 
-	apotek, err := s.ApotekRepo.FindByAdmin(adminID)
+	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return errors.New("admin has no apotek")
 	}
@@ -36,7 +36,7 @@ func (s *ObatService) GetByApotek(apotekID string) ([]domain.Obat, error) {
 }
 
 func (s *ObatService) GetMyObat(adminID string) ([]domain.Obat, error) {
-	apotek, err := s.ApotekRepo.FindByAdmin(adminID)
+	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return nil, errors.New("admin has no apotek")
 	}
@@ -61,7 +61,7 @@ func (s *ObatService) GetPublicByApotek(apotekID string, name string, limit, off
 
 func (s *ObatService) Update(adminID, obatID, nama string, stok int, harga int64) error {
 
-	apotek, err := s.ApotekRepo.FindByAdmin(adminID)
+	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return errors.New("admin has no apotek")
 	}
@@ -84,7 +84,7 @@ func (s *ObatService) Update(adminID, obatID, nama string, stok int, harga int64
 
 func (s *ObatService) Delete(adminID, obatID string) error {
 
-	apotek, err := s.ApotekRepo.FindByAdmin(adminID)
+	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return errors.New("admin has no apotek")
 	}

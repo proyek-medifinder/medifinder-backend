@@ -167,7 +167,6 @@ func (h *AuthHandler) RegisterAdmin(c *gin.Context) {
 		return
 	}
 
-	// Masukin variabel req langsung ke service
 	err := h.Service.RegisterAdmin(req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mendaftar: " + err.Error()})

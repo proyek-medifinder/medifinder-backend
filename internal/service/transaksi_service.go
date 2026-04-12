@@ -92,7 +92,7 @@ func (s *TransaksiService) GetAdminHistory(
 	limit, offset int,
 ) ([]domain.Transaksi, int, error) {
 
-	apotek, err := s.ApotekRepo.FindByAdmin(adminID)
+	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return nil, 0, err
 	}

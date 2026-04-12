@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"errors"
 	"time"
 
@@ -14,31 +15,44 @@ type ApotekService struct {
 }
 
 func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup string) error {
-	existing, _ := s.Repo.FindByAdmin(adminID)
+	adminUUID := uuid.MustParse(adminID)
+
+	existing, _ := s.Repo.FindByAdmin(adminUUID)
 	if existing != nil {
 		return errors.New("admin already has an apotek")
 	}
 
 	apotek := &domain.Apotek{
 		ID:        uuid.New(),
-		AdminID:   uuid.MustParse(adminID),
+		AdminID:   adminUUID,
 		Nama:      nama,
 		Alamat:    alamat,
 		Latitude:  lat,
 		Longitude: long,
-		JamBuka:   jamBuka,
-		JamTutup:  jamTutup,
 	}
 
 	return s.Repo.Create(apotek)
 }
 
-func (s *ApotekService) GetMyApotek(adminID uuid.UUID) (*domain.Apotek, error) {
-	return s.Repo.FindByAdmin(adminID)
+func (s *ApotekService) GetByAdmin(adminID string) (*domain.Apotek, error) {
+	adminUUID, err := uuid.Parse(adminID)
+	if err != nil {
+		return nil, errors.New("invalid admin id")
+	}
+
+	apotek, err := s.Repo.FindByAdmin(adminUUID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("apotek tidak ditemukan untuk admin ini")
+		}
+		return nil, err
+	}
+
+	return apotek, nil
 }
 
 func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup, phoneNumber, deskripsi string) error {
-	apotek, err := s.Repo.FindByAdmin(adminID)
+	apotek, err := s.Repo.FindByAdmin(uuid.MustParse(adminID)) // Parse dulu!
 	if err != nil {
 		return err
 	}
@@ -47,10 +61,7 @@ func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long fl
 	apotek.Alamat = alamat
 	apotek.Latitude = lat
 	apotek.Longitude = long
-	apotek.JamBuka = jamBuka
-	apotek.JamTutup = jamTutup
-	apotek.PhoneNumber = phoneNumber // Tambahan field baru
-	apotek.Deskripsi = &deskripsi    // Tambahan field baru (karena di domain pake pointer)
+	apotek.Deskripsi = &deskripsi
 
 	return s.Repo.Update(apotek)
 }
@@ -60,13 +71,11 @@ func (s *ApotekService) SearchNearby(
 	limit, offset int,
 ) ([]domain.Apotek, int, error) {
 
-	// Set Timezone ke WIB (Asia/Jakarta)
 	loc, err := time.LoadLocation("Asia/Jakarta")
 	if err != nil {
-		loc = time.Local // Fallback kalau library time nggak nemu zona
+		loc = time.Local
 	}
 
-	// Ambil jam saat ini dengan format HH:MM:SS
 	currentTime := time.Now().In(loc).Format("15:04:05")
 
 	return s.Repo.FindNearby(lat, lng, radius, limit, offset, currentTime)

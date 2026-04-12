@@ -230,11 +230,10 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 	}
 	defer tx.Rollback()
 
-	// Ambil data aplikasi admin
 	var app domain.AdminApplication
 	err = tx.Get(&app, `SELECT * FROM admin_applications WHERE user_id = $1 ORDER BY submitted_at DESC LIMIT 1`, adminID)
 	if err != nil {
-		return err // Berarti aplikasinya gak ketemu
+		return err
 	}
 
 	userStatus := "rejected"
@@ -242,10 +241,9 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 	var rejectionReason *string
 
 	if action == "approved" {
-		userStatus = "active" // Sesuai enum SRS baru (aktif, bukan approved)
+		userStatus = "active" 
 		appStatus = "APPROVED"
 
-		// Insert ke tabel Apotek kalau di-approve
 		_, err = tx.Exec(`
 			INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, verification_status, created_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'APPROVED', CURRENT_TIMESTAMP)
@@ -258,7 +256,6 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 		rejectionReason = &reason
 	}
 
-	// Update status di admin_applications
 	_, err = tx.Exec(`
 		UPDATE admin_applications 
 		SET status = $1, rejection_reason = $2, reviewed_at = CURRENT_TIMESTAMP, reviewed_by = $3
@@ -268,13 +265,11 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 		return err
 	}
 
-	// Update status di users
 	_, err = tx.Exec(`UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`, userStatus, adminID)
 	if err != nil {
 		return err
 	}
 
-	// Insert Log Verifikasi
 	_, err = tx.Exec(`
 		INSERT INTO verification_logs (id, admin_id, superadmin_id, action, notes)
 		VALUES ($1, $2, $3, $4, $5)
