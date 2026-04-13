@@ -341,13 +341,11 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 		Status:      "PENDING",
 	}
 
-	// Panggil repository transaction
 	err := s.UserRepo.RegisterAdminTx(user, app)
 	if err != nil {
 		return err
 	}
 
-	// (Opsional) Kirim Email Pemberitahuan
 	emailBody := "Pendaftaran Admin Apotek Anda berhasil diajukan. Mohon tunggu verifikasi dari Super Admin maksimal 2x24 jam."
 	utils.SendEmail(req.Email, "Pendaftaran Admin Medifinder Diterima", emailBody)
 
