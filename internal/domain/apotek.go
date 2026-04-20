@@ -12,9 +12,8 @@ type Apotek struct {
 	Nama      string    `db:"nama" json:"nama"`
 	Alamat    string    `db:"alamat" json:"alamat"`
 	Latitude  float64   `db:"latitude" json:"latitude"`
-	Longitude float64   `db:"longitude" json:"longitude"`
+	Longitude float64   `db:"longitude" json:"longitude"` 
 
-	// UBAH 3 FIELD INI JADI POINTER (*string) AGAR BISA MENERIMA NULL DARI DATABASE
 	PhoneNumber *string `db:"phone_number" json:"phone_number"`
 	Deskripsi   *string `db:"deskripsi" json:"deskripsi,omitempty"`
 	JamBuka     *string `db:"jam_buka" json:"jam_buka"`

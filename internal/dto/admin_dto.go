@@ -1,13 +1,23 @@
 package dto
 
-type AdminRequest struct {
-	Nama     string `json:"nama" example:"Admin Apotek"`
-	Email    string `json:"email" example:"admin@apotek.com"`
-	Password string `json:"password" example:"password123"`
+type VerifyAdminRequest struct {
+	AdminID string `json:"admin_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
+	Action  string `json:"action" binding:"required" example:"approved"`
+	Notes   string `json:"notes" example:"Dokumen lengkap dan valid"`
 }
 
-type AdminResponse struct {
-	ID    uint   `json:"id"`
-	Nama  string `json:"nama"`
-	Email string `json:"email"`
+type ChangeAdminStatusRequest struct {
+	Status string `json:"status" binding:"required" example:"suspended"`
+}
+
+type AdminRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// DTO untuk Update Admin
+type UpdateAdminRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
 }

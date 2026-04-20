@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -138,14 +139,10 @@ func (h *SuperAdminHandler) GetPendingAdmins(c *gin.Context) {
 // @Failure 400 {object} map[string]interface{}
 // @Router /superadmin/verifikasi [post]
 func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
-	// Ambil ID Super Admin yang lagi login dari token JWT
 	superAdminID := c.GetString("user_id")
 
-	var req struct {
-		AdminID string `json:"admin_id" binding:"required"`
-		Action  string `json:"action" binding:"required"` // 'approved' atau 'rejected'
-		Notes   string `json:"notes"`
-	}
+	// GANTI INLINE STRUCT JADI DTO
+	var req dto.VerifyAdminRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "format data tidak valid"})
@@ -163,21 +160,20 @@ func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
 
 // ChangeAdminStatus godoc
 // @Summary Ubah status admin apotek (Suspend / Activate)
-// @Tags Super Admin
+// @Tags SuperAdmin
 // @Security BearerAuth
 // @Accept json
 // @Produce json
 // @Param id path string true "ID Admin Apotek"
-// @Param request body map[string]string true "Status baru: 'approved' atau 'suspended'"
+// @Param request body dto.ChangeAdminStatusRequest true "Status baru: 'approved' atau 'suspended'"
 // @Success 200 {object} map[string]interface{}
 // @Failure 400 {object} map[string]interface{}
 // @Router /superadmin/admin/{id}/status [patch]
 func (h *SuperAdminHandler) ChangeAdminStatus(c *gin.Context) {
 	adminID := c.Param("id")
 
-	var req struct {
-		Status string `json:"status"`
-	}
+	// GANTI INLINE STRUCT JADI DTO
+	var req dto.ChangeAdminStatusRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "Format input tidak valid"})

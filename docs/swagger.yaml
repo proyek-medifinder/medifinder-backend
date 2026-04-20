@@ -8,8 +8,9 @@ definitions:
       created_at:
         type: string
       deskripsi:
-        description: Field Baru
         type: string
+      distance:
+        type: number
       id:
         type: string
       jam_buka:
@@ -23,12 +24,12 @@ definitions:
       nama:
         type: string
       phone_number:
-        description: Field Baru
+        description: UBAH 3 FIELD INI JADI POINTER (*string) AGAR BISA MENERIMA NULL
+          DARI DATABASE
         type: string
       rejection_reason:
         type: string
       verification_status:
-        description: APPROVED / REJECTED
         type: string
     type: object
   dto.APIResponse:
@@ -44,14 +45,15 @@ definitions:
   dto.AdminRequest:
     properties:
       email:
-        example: admin@apotek.com
         type: string
-      nama:
-        example: Admin Apotek
+      name:
         type: string
       password:
-        example: password123
         type: string
+    required:
+    - email
+    - name
+    - password
     type: object
   dto.AuthResponse:
     properties:
@@ -66,6 +68,14 @@ definitions:
       token:
         example: jwt_token_here
         type: string
+    type: object
+  dto.ChangeAdminStatusRequest:
+    properties:
+      status:
+        example: suspended
+        type: string
+    required:
+    - status
     type: object
   dto.ErrorResponse:
     properties:
@@ -204,14 +214,13 @@ definitions:
   dto.VerifyAdminRequest:
     properties:
       action:
-        description: approved atau rejected
         example: approved
         type: string
       admin_id:
         example: 123e4567-e89b-12d3-a456-426614174000
         type: string
       notes:
-        example: Dokumen apotek valid dan lengkap
+        example: Dokumen lengkap dan valid
         type: string
     required:
     - action
@@ -627,9 +636,7 @@ paths:
         name: request
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/dto.ChangeAdminStatusRequest'
       produces:
       - application/json
       responses:
@@ -647,7 +654,7 @@ paths:
       - BearerAuth: []
       summary: Ubah status admin apotek (Suspend / Activate)
       tags:
-      - Super Admin
+      - SuperAdmin
   /superadmin/pengajuan:
     get:
       parameters:

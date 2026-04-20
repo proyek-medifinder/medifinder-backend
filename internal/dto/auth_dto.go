@@ -47,9 +47,3 @@ type RegisterAdminRequest struct {
 	PhoneNumber string  `json:"phone_number" binding:"required"`
 	Deskripsi   string  `json:"deskripsi"`
 }
-
-type VerifyAdminRequest struct {
-	AdminID string `json:"admin_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Action  string `json:"action" binding:"required" example:"approved"` // approved atau rejected
-	Notes   string `json:"notes" example:"Dokumen apotek valid dan lengkap"`
-}

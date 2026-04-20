@@ -8,4 +8,5 @@ type Obat struct {
 	Nama     string    `db:"nama"`
 	Stok     int       `db:"stok"`
 	Harga    int64     `db:"harga"`
+	Kategori string    `db:"kategori"`
 }

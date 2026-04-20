@@ -636,7 +636,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Super Admin"
+                    "SuperAdmin"
                 ],
                 "summary": "Ubah status admin apotek (Suspend / Activate)",
                 "parameters": [
@@ -653,10 +653,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/dto.ChangeAdminStatusRequest"
                         }
                     }
                 ],
@@ -848,8 +845,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "deskripsi": {
-                    "description": "Field Baru",
                     "type": "string"
+                },
+                "distance": {
+                    "type": "number"
                 },
                 "id": {
                     "type": "string"
@@ -870,14 +869,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "phone_number": {
-                    "description": "Field Baru",
+                    "description": "UBAH 3 FIELD INI JADI POINTER (*string) AGAR BISA MENERIMA NULL DARI DATABASE",
                     "type": "string"
                 },
                 "rejection_reason": {
                     "type": "string"
                 },
                 "verification_status": {
-                    "description": "APPROVED / REJECTED",
                     "type": "string"
                 }
             }
@@ -898,18 +896,20 @@ const docTemplate = `{
         },
         "dto.AdminRequest": {
             "type": "object",
+            "required": [
+                "email",
+                "name",
+                "password"
+            ],
             "properties": {
                 "email": {
-                    "type": "string",
-                    "example": "admin@apotek.com"
+                    "type": "string"
                 },
-                "nama": {
-                    "type": "string",
-                    "example": "Admin Apotek"
+                "name": {
+                    "type": "string"
                 },
                 "password": {
-                    "type": "string",
-                    "example": "password123"
+                    "type": "string"
                 }
             }
         },
@@ -930,6 +930,18 @@ const docTemplate = `{
                 "token": {
                     "type": "string",
                     "example": "jwt_token_here"
+                }
+            }
+        },
+        "dto.ChangeAdminStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "suspended"
                 }
             }
         },
@@ -1136,7 +1148,6 @@ const docTemplate = `{
             ],
             "properties": {
                 "action": {
-                    "description": "approved atau rejected",
                     "type": "string",
                     "example": "approved"
                 },
@@ -1146,7 +1157,7 @@ const docTemplate = `{
                 },
                 "notes": {
                     "type": "string",
-                    "example": "Dokumen apotek valid dan lengkap"
+                    "example": "Dokumen lengkap dan valid"
                 }
             }
         }
