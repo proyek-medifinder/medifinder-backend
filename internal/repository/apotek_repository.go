@@ -102,46 +102,53 @@ func (r *ApotekRepository) FindNearby(
 	var list []domain.Apotek
 	var total int
 
-	baseQuery := `
-	FROM apotek
-	WHERE (
-		6371 * acos(
-			cos(radians($1)) *
-			cos(radians(latitude)) *
-			cos(radians(longitude) - radians($2)) +
-			sin(radians($1)) *
-			sin(radians(latitude))
-		)
-	) <= $3
-	AND (
-		-- Tambahin ::time di setiap jam_buka dan jam_tutup
+	// 1. Kondisi Filter Jarak (Opsional kalau lat/lng tidak 0)
+	distanceCondition := "TRUE" // Default kalau ga ada koordinat
+	distanceSelect := "0 AS distance"
+	if lat != 0 && lng != 0 {
+		distanceCondition = `(
+			6371 * acos(
+				cos(radians($1)) *
+				cos(radians(latitude)) *
+				cos(radians(longitude) - radians($2)) +
+				sin(radians($1)) *
+				sin(radians(latitude))
+			)
+		) <= $3`
+		distanceSelect = `(
+			6371 * acos(
+				cos(radians($1)) *
+				cos(radians(latitude)) *
+				cos(radians(longitude) - radians($2)) +
+				sin(radians($1)) *
+				sin(radians(latitude))
+			)
+		) AS distance`
+	}
+
+	// 2. Kondisi Filter Jam (Handle NULL supaya tetap muncul)
+	// Kita tambah "jam_buka IS NULL" supaya data lu yg NULL ga ilang
+	timeCondition := `(
+		(jam_buka IS NULL OR jam_tutup IS NULL)
+		OR
 		(jam_buka::time <= jam_tutup::time AND $4::time >= jam_buka::time AND $4::time <= jam_tutup::time)
 		OR
 		(jam_buka::time > jam_tutup::time AND ($4::time >= jam_buka::time OR $4::time <= jam_tutup::time))
-	)
-	`
+	)`
 
+	baseQuery := " FROM apotek WHERE " + distanceCondition + " AND " + timeCondition
+
+	// 3. Eksekusi Count Query
 	countQuery := "SELECT COUNT(*) " + baseQuery
 	err := r.DB.Get(&total, countQuery, lat, lng, radius, currentTime)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	dataQuery := `
-	SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup,
-	(
-		6371 * acos(
-			cos(radians($1)) *
-			cos(radians(latitude)) *
-			cos(radians(longitude) - radians($2)) +
-			sin(radians($1)) *
-			sin(radians(latitude))
-		)
-	) AS distance
-	` + baseQuery + `
-	ORDER BY distance ASC
-	LIMIT $5 OFFSET $6
-	`
+	// 4. Eksekusi Data Query
+	dataQuery := "SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, " +
+		distanceSelect + baseQuery +
+		" ORDER BY distance ASC LIMIT $5 OFFSET $6"
 
 	err = r.DB.Select(&list, dataQuery,
 		lat, lng, radius, currentTime,

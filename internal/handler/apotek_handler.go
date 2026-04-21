@@ -52,16 +52,17 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "apotek created"})
 }
 
-// GetMyApotek godoc
-// @Summary Melihat Profil Apotek Saya (Admin Only)
-// @Description Mengambil data lengkap apotek yang dikelola oleh admin yang sedang login
-// @Tags Admin Apotek
-// @Security BearerAuth
+// SearchNearby godoc
+// @Summary Search nearby pharmacies
+// @Description Get pharmacies within a certain radius and check if they are open
+// @Tags apotek
+// @Accept json
 // @Produce json
-// @Success 200 {object} domain.Apotek
-// @Failure 401 {object} map[string]interface{}
-// @Failure 404 {object} map[string]interface{}
-// @Router /admin/apotek [get]
+// @Param lat query number true "Latitude"
+// @Param lng query number true "Longitude"
+// @Param radius query number false "Radius in km (default 5)"
+// @Success 200 {array} dto.ApotekNearbyResponse
+// @Router /apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
@@ -112,23 +113,57 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 // @Produce json
 // @Router /apotek/nearby [get]
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
+	// 1. Ambil Query Parameter
+	latStr := c.Query("lat")
+	lngStr := c.Query("lng")
+	radiusStr := c.Query("radius")
 
-	lat, _ := strconv.ParseFloat(c.Query("lat"), 64)
-	lng, _ := strconv.ParseFloat(c.Query("lng"), 64)
-	radius, _ := strconv.ParseFloat(c.DefaultQuery("radius", "5"), 64)
-
-	page, limit, offset := utils.GetPaginationAdvanced(c)
-
-	data, total, err := h.Service.SearchNearby(lat, lng, radius, limit, offset)
-	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	// 2. Validasi: Wajib ada lat & lng
+	if latStr == "" || lngStr == "" {
+		c.JSON(400, gin.H{"error": "Koordinat lat dan lng harus diisi, cuy"})
 		return
 	}
 
-	totalPage := (total + limit - 1) / limit
+	lat, errLat := strconv.ParseFloat(latStr, 64)
+	lng, errLng := strconv.ParseFloat(lngStr, 64)
+	if errLat != nil || errLng != nil {
+		c.JSON(400, gin.H{"error": "Format koordinat kagak bener nih"})
+		return
+	}
 
+	// 3. Set Default & Limit Radius
+	radius := 5.0 // default 5km
+	if radiusStr != "" {
+		if r, err := strconv.ParseFloat(radiusStr, 64); err == nil {
+			if r > 50 {
+				radius = 50 // Batasin biar DB nggak kerja bakti
+			} else {
+				radius = r
+			}
+		}
+	}
+
+	// 4. Ambil Parameter Pagination
+	page, limit, offset := utils.GetPaginationAdvanced(c)
+
+	// 5. Panggil Service (Gunakan nama service yang benar, misal: h.ApotekService)
+	// Pastikan Service.SearchNearby nerima (lat, lng, radius, limit, offset)
+	data, total, err := h.Service.SearchNearby(lat, lng, radius, limit, offset)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()}) // Pakai 500 kalau errornya dari internal/DB
+		return
+	}
+
+	// 6. Hitung Metadata
+	totalInt64 := int64(total)
+	limitInt64 := int64(limit)
+
+	totalPage := (totalInt64 + limitInt64 - 1) / limitInt64
+
+	// 7. Response
 	c.JSON(200, gin.H{
-		"data": data,
+		"message": "Berhasil dapet data apotek sekitar, cuy",
+		"data":    data,
 		"meta": gin.H{
 			"page":       page,
 			"limit":      limit,
