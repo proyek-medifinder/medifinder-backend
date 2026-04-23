@@ -96,6 +96,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	}()
 
 	// ================= PUBLIC =================
+	r.Static("/public", "./public")
+	r.Static("/uploads", "./public/uploads")
 	r.POST("/register", authHandler.Register)
 	r.POST("/register-admin", authHandler.RegisterAdmin)
 	r.POST("/login", authHandler.Login)
@@ -136,6 +138,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	adminGroup.Use(middleware.Authorize("admin_apotek"))
 	{
 		// +++++++++++ OBAT +++++++++++
+		adminGroup.PUT("/foto", apotekHandler.UpdatePhoto)
 		adminGroup.POST("/obat", obatHandler.Create)
 		adminGroup.GET("/obat", obatHandler.GetMyObat)
 		adminGroup.PUT("/obat/:id", obatHandler.Update)

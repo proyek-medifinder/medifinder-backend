@@ -102,13 +102,13 @@ func (s *CartService) GetCart(userID string) (interface{}, error) {
 		return nil, err
 	}
 
-	var total int64 = 0
+	var total float64 = 0
 
 	var result []map[string]interface{}
 
 	for _, item := range items {
 
-		subtotal := item.Harga * int64(item.Jumlah)
+		subtotal := item.Harga * float64(item.Jumlah)
 		total += subtotal
 
 		result = append(result, map[string]interface{}{
@@ -199,13 +199,13 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		return "", "", "", errors.New("cart kosong")
 	}
 
-	var total int64 = 0
+	var total float64 = 0
 	transaksiID := uuid.New()
 
 	type DetailData struct {
 		ObatID uuid.UUID
 		Jumlah int
-		Harga  int64
+		Harga  float64
 	}
 	var detailsToInsert []DetailData
 
@@ -222,7 +222,7 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 			return "", "", "", errors.New("stok tidak cukup untuk obat: " + obat.Nama)
 		}
 
-		total += obat.Harga * int64(item.Jumlah)
+		total += obat.Harga * float64(item.Jumlah)
 
 		// RESERVE STOCK: Langsung kurangi stok di database sekarang juga
 		_, err = tx.Exec("UPDATE obat SET stok = stok - $1 WHERE id = $2", item.Jumlah, item.ObatID)
@@ -277,7 +277,7 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	req := &snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
 			OrderID:  transaksiID.String(),
-			GrossAmt: total,
+			GrossAmt: int64(total),
 		},
 	}
 

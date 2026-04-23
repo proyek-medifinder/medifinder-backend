@@ -2,9 +2,11 @@ package handler
 
 import (
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
@@ -23,34 +25,53 @@ type CreateApotekRequest struct {
 	JamTutup  string  `json:"jam_tutup" example:"22:00:00"`
 }
 
-// @Summary Buat Apotek Baru
-// @Tags Apotek
-// @Produce json
-// @Router /admin/apotek [post]
+// Create godoc
+// @Summary      Tambah Apotek Baru
+// @Description   Membuat data apotek baru sekaligus upload foto profil
+// @Tags         Apotek
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        nama       formData  string  true  "Nama Apotek"
+// @Param        alamat     formData  string  true  "Alamat Lengkap"
+// @Param        latitude   formData  number  true  "Latitude"
+// @Param        longitude  formData  number  true  "Longitude"
+// @Param        jam_buka   formData  string  false "Format HH:mm"
+// @Param        jam_tutup  formData  string  false "Format HH:mm"
+// @Param        photo      formData  file    false "File Foto (.jpg, .png)"
+// @Success      201  {object}  map[string]interface{}
+// @Router       /admin/apotek [post]
+// @Security     Bearer
 func (h *ApotekHandler) Create(c *gin.Context) {
+	// 1. Ambil data teks dari form
+	nama := c.PostForm("nama")
+	alamat := c.PostForm("alamat")
+	lat, _ := strconv.ParseFloat(c.PostForm("latitude"), 64)
+	lng, _ := strconv.ParseFloat(c.PostForm("longitude"), 64)
+	jamBuka := c.PostForm("jam_buka")
+	jamTutup := c.PostForm("jam_tutup")
 	adminID := c.GetString("user_id")
 
-	var req struct {
-		Nama      string  `json:"nama"`
-		Alamat    string  `json:"alamat"`
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
-		JamBuka   string  `json:"jam_buka"`
-		JamTutup  string  `json:"jam_tutup"`
+	var photo_url *string
+	file, err := c.FormFile("photo")
+	if err == nil {
+		ext := filepath.Ext(file.Filename)
+		filename := uuid.New().String() + ext
+		dst := "public/uploads/apotek/" + filename
+
+		if err := c.SaveUploadedFile(file, dst); err == nil {
+			path := "/" + dst
+			photo_url = &path
+		}
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": "invalid input"})
-		return
-	}
-
-	err := h.Service.Create(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup)
+	// 3. Panggil Service
+	err = h.Service.Create(adminID, nama, alamat, lat, lng, jamBuka, jamTutup, photo_url)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(201, gin.H{"message": "apotek created"})
+	c.JSON(201, gin.H{"message": "Apotek berhasil dibuat"})
 }
 
 // SearchNearby godoc
@@ -97,7 +118,7 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 	}
 
 	// Panggil service dengan parameter lengkap
-	err := h.Service.Update(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup, req.PhoneNumber, req.Deskripsi)
+	err := h.Service.Update(adminID, req.Nama, req.Alamat, req.Latitude, req.Longitude, req.JamBuka, req.JamTutup, req.PhoneNumber, req.Deskripsi, req.PhotoURL)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
@@ -179,5 +200,54 @@ func (h *ApotekHandler) GetByID(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "Mantap dapet",
 		"data":    apotek,
+	})
+}
+
+// UpdatePhoto godoc
+// @Summary      Update Foto Apotek
+// @Description   Upload foto profil untuk apotek milik admin yang sedang login
+// @Tags         Apotek
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        photo  formData  file  true  "File Foto Apotek (.jpg, .png)"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]interface{}
+// @Security     Bearer
+// @Router       /admin/foto [put]
+func (h *ApotekHandler) UpdatePhoto(c *gin.Context) {
+	adminID := c.GetString("user_id") // Ambil ID dari token JWT
+
+	// 1. Ambil file dari form-data
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Foto tidak ditemukan di request"})
+		return
+	}
+
+	ext := filepath.Ext(file.Filename)
+	filename := uuid.New().String() + ext
+	dst := "public/uploads/apotek/" + filename
+
+	// 3. Simpan file ke folder lokal
+	if err := c.SaveUploadedFile(file, dst); err != nil {
+		c.JSON(500, gin.H{"error": "Gagal simpan foto ke server"})
+		return
+	}
+
+	// 4. Update URL-nya ke Database lewat service
+	// (Simpan URL path-nya, misal: /public/uploads/apotek/xxx.jpg)
+	photo_url := "/" + dst
+
+	// Pake h.Service, sesuai nama field di struct lu
+	err = h.Service.UpdateImage(adminID, photo_url)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"message": "Foto apotek berhasil diupdate",
+		"url":     photo_url,
 	})
 }

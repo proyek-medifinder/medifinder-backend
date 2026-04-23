@@ -14,7 +14,7 @@ type CartItemDetail struct {
 	ID     uuid.UUID `db:"id"`
 	ObatID uuid.UUID `db:"obat_id"`
 	Nama   string    `db:"nama"`
-	Harga  int64     `db:"harga"`
+	Harga  float64   `db:"harga"`
 	Jumlah int       `db:"jumlah"`
 }
 

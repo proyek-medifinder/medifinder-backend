@@ -2,10 +2,11 @@ package handler
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sasaefulanwar/medifinder/internal/service"
-	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
 
 type ObatHandler struct {
@@ -28,9 +29,9 @@ func (h *ObatHandler) Create(c *gin.Context) {
 	fmt.Println("ADMIN ID FROM TOKEN:", adminID)
 
 	var req struct {
-		Nama  string `json:"nama"`
-		Stok  int    `json:"stok"`
-		Harga int64  `json:"harga"`
+		Nama  string  `json:"nama"`
+		Stok  int     `json:"stok"`
+		Harga float64 `json:"harga"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -64,9 +65,9 @@ func (h *ObatHandler) Update(c *gin.Context) {
 	obatID := c.Param("id")
 
 	var req struct {
-		Nama  string `json:"nama"`
-		Stok  int    `json:"stok"`
-		Harga int64  `json:"harga"`
+		Nama  string  `json:"nama"`
+		Stok  int     `json:"stok"`
+		Harga float64 `json:"harga"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -109,24 +110,30 @@ func (h *ObatHandler) Delete(c *gin.Context) {
 // @Success 200 {object} map[string]interface{}
 // @Router /apotek/{id}/obat [get]
 func (h *ObatHandler) GetByApotekPublic(c *gin.Context) {
+	apotekID := c.Param("id") // Ambil :id dari URL
 
-	apotekID := c.Param("id")
-
+	// Ambil query params untuk pagination
 	name := c.Query("name")
+	limitStr := c.DefaultQuery("limit", "10")
+	offsetStr := c.DefaultQuery("offset", "0")
 
-	limit, offset := utils.GetPagination(c)
+	// Konversi string ke int
+	limit, _ := strconv.Atoi(limitStr)
+	offset, _ := strconv.Atoi(offsetStr)
 
+	// Panggil Service
 	obat, total, err := h.Service.GetPublicByApotek(apotekID, name, limit, offset)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to fetch data"})
+		// NAH DISINI: Kalau lu return 404 pas err != nil,
+		// padahal ID-nya bener tapi datanya kosong, ini yang bikin bingung.
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, gin.H{
+	// Response Sukses
+	c.JSON(http.StatusOK, gin.H{
 		"data":  obat,
 		"total": total,
-		"limit": limit,
-		"page":  (offset / limit) + 1,
 	})
 }
 

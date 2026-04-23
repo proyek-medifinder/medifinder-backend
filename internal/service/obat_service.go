@@ -13,7 +13,7 @@ type ObatService struct {
 	ApotekRepo *repository.ApotekRepository
 }
 
-func (s *ObatService) Create(adminID, nama string, stok int, harga int64) error {
+func (s *ObatService) Create(adminID, nama string, stok int, harga float64) error {
 
 	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *ObatService) GetPublicByApotek(apotekID string, name string, limit, off
 	return obat, total, nil
 }
 
-func (s *ObatService) Update(adminID, obatID, nama string, stok int, harga int64) error {
+func (s *ObatService) Update(adminID, obatID, nama string, stok int, harga float64) error {
 
 	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {

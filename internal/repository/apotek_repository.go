@@ -14,8 +14,8 @@ type ApotekRepository struct {
 
 func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 	query := `
-	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup)
-	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude, :jam_buka, :jam_tutup)
+	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url)
+	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude, :jam_buka, :jam_tutup, :phone_number, :deskripsi, :photo_url)
 	`
 	_, err := r.DB.NamedExec(query, apotek)
 	return err
@@ -26,7 +26,7 @@ func (r *ApotekRepository) FindByAdmin(adminID uuid.UUID) (*domain.Apotek, error
 
 	query := `
 		SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, 
-		       phone_number, deskripsi, verification_status, rejection_reason, created_at 
+		       phone_number, deskripsi, verification_status, rejection_reason, created_at, photo_url 
 		FROM apotek 
 		WHERE admin_id = $1
 	`
@@ -86,7 +86,7 @@ func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	query := `
 	UPDATE apotek 
 	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude, 
-	    jam_buka=:jam_buka, jam_tutup=:jam_tutup, phone_number=:phone_number, deskripsi=:deskripsi
+	    jam_buka=:jam_buka, jam_tutup=:jam_tutup, phone_number=:phone_number, deskripsi=:deskripsi, photo_url=:photo_url
 	WHERE id=:id
 	`
 	_, err := r.DB.NamedExec(query, apotek)
@@ -101,7 +101,7 @@ func (r *ApotekRepository) FindNearby(
 	currentTime string,
 ) ([]domain.Apotek, int, error) {
 
-	var list []domain.Apotek
+	list := []domain.Apotek{}
 	var total int
 
 	// 1. Kondisi Filter Jarak (Opsional kalau lat/lng tidak 0)
@@ -148,7 +148,7 @@ func (r *ApotekRepository) FindNearby(
 	}
 
 	// 4. Eksekusi Data Query
-	dataQuery := "SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, " +
+	dataQuery := "SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, photo_url, " +
 		distanceSelect + baseQuery +
 		" ORDER BY distance ASC LIMIT $5 OFFSET $6"
 
@@ -168,7 +168,7 @@ func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 	var apotek domain.Apotek
 
 	// 1. Ambil data apoteknya dulu
-	queryApotek := `SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, jam_buka, jam_tutup, verification_status, created_at FROM apotek WHERE id = $1`
+	queryApotek := `SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, jam_buka, jam_tutup, photo_url, verification_status, created_at FROM apotek WHERE id = $1`
 	err := r.DB.Get(&apotek, queryApotek, id)
 	if err != nil {
 		return apotek, err

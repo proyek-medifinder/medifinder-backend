@@ -13,6 +13,7 @@ type Apotek struct {
 	Alamat    string    `db:"alamat" json:"alamat"`
 	Latitude  float64   `db:"latitude" json:"latitude"`
 	Longitude float64   `db:"longitude" json:"longitude"`
+	PhotoURL  *string   `db:"photo_url"`
 
 	PhoneNumber *string `db:"phone_number" json:"phone_number"`
 	Deskripsi   *string `db:"deskripsi" json:"deskripsi,omitempty"`

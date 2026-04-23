@@ -7,6 +7,6 @@ type Obat struct {
 	ApotekID uuid.UUID `db:"apotek_id"`
 	Nama     string    `db:"nama"`
 	Stok     int       `db:"stok"`
-	Harga    int64     `db:"harga"`
+	Harga    float64   `db:"harga"`
 	Kategori string    `db:"kategori"`
 }

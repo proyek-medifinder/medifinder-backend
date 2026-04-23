@@ -231,6 +231,9 @@ definitions:
       phone_number:
         example: "081234567890"
         type: string
+      photo_url:
+        example: https://example.com/photo.jpg
+        type: string
     type: object
   dto.UpdateCartRequest:
     properties:
@@ -270,10 +273,53 @@ info:
 paths:
   /admin/apotek:
     post:
+      consumes:
+      - multipart/form-data
+      description: Membuat data apotek baru sekaligus upload foto profil
+      parameters:
+      - description: Nama Apotek
+        in: formData
+        name: nama
+        required: true
+        type: string
+      - description: Alamat Lengkap
+        in: formData
+        name: alamat
+        required: true
+        type: string
+      - description: Latitude
+        in: formData
+        name: latitude
+        required: true
+        type: number
+      - description: Longitude
+        in: formData
+        name: longitude
+        required: true
+        type: number
+      - description: Format HH:mm
+        in: formData
+        name: jam_buka
+        type: string
+      - description: Format HH:mm
+        in: formData
+        name: jam_tutup
+        type: string
+      - description: File Foto (.jpg, .png)
+        in: formData
+        name: photo
+        type: file
       produces:
       - application/json
-      responses: {}
-      summary: Buat Apotek Baru
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Tambah Apotek Baru
       tags:
       - Apotek
     put:
@@ -303,6 +349,40 @@ paths:
       security:
       - BearerAuth: []
       summary: Update Profil Apotek Sendiri
+      tags:
+      - Apotek
+  /admin/foto:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Upload foto profil untuk apotek milik admin yang sedang login
+      parameters:
+      - description: File Foto Apotek (.jpg, .png)
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Update Foto Apotek
       tags:
       - Apotek
   /admin/obat:

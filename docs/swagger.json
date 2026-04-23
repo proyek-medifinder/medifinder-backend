@@ -55,14 +55,131 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Membuat data apotek baru sekaligus upload foto profil",
+                "consumes": [
+                    "multipart/form-data"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Apotek"
                 ],
-                "summary": "Buat Apotek Baru",
-                "responses": {}
+                "summary": "Tambah Apotek Baru",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Nama Apotek",
+                        "name": "nama",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Alamat Lengkap",
+                        "name": "alamat",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "latitude",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "longitude",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Format HH:mm",
+                        "name": "jam_buka",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Format HH:mm",
+                        "name": "jam_tutup",
+                        "in": "formData"
+                    },
+                    {
+                        "type": "file",
+                        "description": "File Foto (.jpg, .png)",
+                        "name": "photo",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/foto": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Upload foto profil untuk apotek milik admin yang sedang login",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Apotek"
+                ],
+                "summary": "Update Foto Apotek",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File Foto Apotek (.jpg, .png)",
+                        "name": "photo",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/admin/obat": {
@@ -1407,6 +1524,10 @@
                 "phone_number": {
                     "type": "string",
                     "example": "081234567890"
+                },
+                "photo_url": {
+                    "type": "string",
+                    "example": "https://example.com/photo.jpg"
                 }
             }
         },
