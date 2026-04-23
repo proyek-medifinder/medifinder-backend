@@ -1,37 +1,4 @@
 definitions:
-  domain.Apotek:
-    properties:
-      admin_id:
-        type: string
-      alamat:
-        type: string
-      created_at:
-        type: string
-      deskripsi:
-        type: string
-      distance:
-        type: number
-      id:
-        type: string
-      jam_buka:
-        type: string
-      jam_tutup:
-        type: string
-      latitude:
-        type: number
-      longitude:
-        type: number
-      nama:
-        type: string
-      phone_number:
-        description: UBAH 3 FIELD INI JADI POINTER (*string) AGAR BISA MENERIMA NULL
-          DARI DATABASE
-        type: string
-      rejection_reason:
-        type: string
-      verification_status:
-        type: string
-    type: object
   dto.APIResponse:
     properties:
       data: {}
@@ -41,6 +8,15 @@ definitions:
       success:
         example: true
         type: boolean
+    type: object
+  dto.AddCartRequest:
+    properties:
+      jumlah:
+        example: 2
+        type: integer
+      obat_id:
+        example: 0d744571-...
+        type: string
     type: object
   dto.AdminRequest:
     properties:
@@ -68,6 +44,32 @@ definitions:
       token:
         example: jwt_token_here
         type: string
+    type: object
+  dto.CartItemResponse:
+    properties:
+      harga:
+        type: number
+      id:
+        type: string
+      jumlah:
+        type: integer
+      nama_obat:
+        type: string
+      obat_id:
+        type: string
+      subtotal:
+        type: number
+    type: object
+  dto.CartResponse:
+    properties:
+      apotek_id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.CartItemResponse'
+        type: array
+      total:
+        type: number
     type: object
   dto.ChangeAdminStatusRequest:
     properties:
@@ -203,6 +205,39 @@ definitions:
       transaksi_id:
         type: integer
     type: object
+  dto.UpdateApotekRequest:
+    properties:
+      alamat:
+        example: Jl. Merdeka No. 45
+        type: string
+      deskripsi:
+        example: Apotek buka setiap hari dengan apoteker yang ramah.
+        type: string
+      jam_buka:
+        example: "08:00:00"
+        type: string
+      jam_tutup:
+        example: "22:00:00"
+        type: string
+      latitude:
+        example: -6.2
+        type: number
+      longitude:
+        example: 106.816666
+        type: number
+      nama:
+        example: Apotek Sehat Sejahtera
+        type: string
+      phone_number:
+        example: "081234567890"
+        type: string
+    type: object
+  dto.UpdateCartRequest:
+    properties:
+      jumlah:
+        example: 3
+        type: integer
+    type: object
   dto.UpdateResepStatusRequest:
     properties:
       status:
@@ -234,31 +269,6 @@ info:
   version: "1.0"
 paths:
   /admin/apotek:
-    get:
-      description: Mengambil data lengkap apotek yang dikelola oleh admin yang sedang
-        login
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/domain.Apotek'
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Melihat Profil Apotek Saya (Admin Only)
-      tags:
-      - Admin Apotek
     post:
       produces:
       - application/json
@@ -267,9 +277,31 @@ paths:
       tags:
       - Apotek
     put:
+      consumes:
+      - application/json
+      description: Update informasi profil apotek termasuk jam operasional dan kontak
+      parameters:
+      - description: Data update apotek
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateApotekRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: 'message: profil apotek berhasil diupdate'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: format data tidak valid / pesan error lainnya'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
       summary: Update Profil Apotek Sendiri
       tags:
       - Apotek
@@ -319,8 +351,38 @@ paths:
       summary: Hapus obat
       tags:
       - Admin Obat
+  /admin/obat/{id}:
     put:
-      responses: {}
+      consumes:
+      - application/json
+      description: Update informasi nama, stok, atau harga obat oleh admin apotek
+      parameters:
+      - description: Obat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data update obat
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ObatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'message: obat updated'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'error: invalid input / error message'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
       summary: Update data obat
       tags:
       - Admin Obat
@@ -393,6 +455,32 @@ paths:
       summary: Riwayat transaksi masuk (Admin Apotek)
       tags:
       - Admin Transaksi
+  /apotek:
+    get:
+      consumes:
+      - application/json
+      description: Get pharmacies within a certain radius and check if they are open
+      parameters:
+      - description: Latitude
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: Radius in km (default 5)
+        in: query
+        name: radius
+        type: number
+      produces:
+      - application/json
+      responses: {}
+      summary: Search nearby pharmacies
+      tags:
+      - apotek
   /apotek/{id}/obat:
     get:
       parameters:
@@ -422,14 +510,116 @@ paths:
       summary: Lihat daftar obat di apotek tertentu (Public)
       tags:
       - Obat
-  /apotek/nearby:
+  /cart:
     get:
+      description: Mengambil semua daftar obat yang ada di keranjang user saat ini
       produces:
       - application/json
-      responses: {}
-      summary: Mencari Apotek Terdekat & Buka
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CartResponse'
+        "401":
+          description: 'error: unauthorized'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lihat isi keranjang
       tags:
-      - Apotek
+      - Keranjang
+  /cart/checkout:
+    post:
+      consumes:
+      - application/json
+      description: Membuat transaksi baru dari item-item yang ada di keranjang
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 'message: checkout success, data: transaksi'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Proses Checkout
+      tags:
+      - Keranjang
+  /cart/items:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Data item keranjang
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Tambah obat ke keranjang
+      tags:
+      - Keranjang
+  /cart/items/{id}:
+    delete:
+      description: Menghapus satu item obat dari keranjang belanja
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: 'message: item deleted'
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Hapus item dari keranjang
+      tags:
+      - Keranjang
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Cart Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Data update quantity
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCartRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update jumlah item di keranjang
+      tags:
+      - Keranjang
   /google-login:
     post:
       consumes:

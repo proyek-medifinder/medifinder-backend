@@ -35,3 +35,14 @@ type CreateApotekRequest struct {
 	JamBuka   string  `json:"jam_buka" binding:"required"`
 	JamTutup  string  `json:"jam_tutup" binding:"required"`
 }
+
+type UpdateApotekRequest struct {
+	Nama        string  `json:"nama" example:"Apotek Sehat Sejahtera"`
+	Alamat      string  `json:"alamat" example:"Jl. Merdeka No. 45"`
+	Latitude    float64 `json:"latitude" example:"-6.200000"`
+	Longitude   float64 `json:"longitude" example:"106.816666"`
+	JamBuka     string  `json:"jam_buka" example:"08:00:00"`
+	JamTutup    string  `json:"jam_tutup" example:"22:00:00"`
+	PhoneNumber string  `json:"phone_number" example:"081234567890"`
+	Deskripsi   string  `json:"deskripsi" example:"Apotek buka setiap hari dengan apoteker yang ramah."`
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -33,10 +34,20 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = os.Getenv("APP_PORT") 
+		port = os.Getenv("APP_PORT")
 	}
 	if port == "" {
-		port = "8080" 
+		port = "8080"
 	}
+
+	fmt.Println(`
+  __  __          _ _  ______ _           _            
+ |  \/  |        | (_)|  ____(_)         | |           
+ | \  / | ___  __| |_ | |__   _ _ __   __| | ___ _ __ 
+ | |\/| |/ _ \/ _  | ||  __| | | '_ \ / _  |/ _ \ '__|
+ | |  | |  __/ (_| | || |    | | | | | (_| |  __/ |   
+ |_|  |_|\___|\__,_|_||_|    |_|_| |_|\__,_|\___|_|   
+`)
+
 	r.Run(":" + port)
 }

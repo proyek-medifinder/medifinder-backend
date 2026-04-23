@@ -1,8 +1,8 @@
 package dto
 
 type AddCartRequest struct {
-	ObatID uint `json:"obat_id" example:"1"`
-	Jumlah int  `json:"jumlah" example:"2"`
+	ObatID string `json:"obat_id" example:"0d744571-..."`
+	Jumlah int    `json:"jumlah" example:"2"`
 }
 
 type UpdateCartRequest struct {
@@ -10,8 +10,8 @@ type UpdateCartRequest struct {
 }
 
 type CartItemResponse struct {
-	ID       uint    `json:"id"`
-	ObatID   uint    `json:"obat_id"`
+	ID       string  `json:"id"`
+	ObatID   string  `json:"obat_id"`
 	NamaObat string  `json:"nama_obat"`
 	Harga    float64 `json:"harga"`
 	Jumlah   int     `json:"jumlah"`

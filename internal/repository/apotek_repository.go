@@ -168,22 +168,23 @@ func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 	var apotek domain.Apotek
 
 	// 1. Ambil data apoteknya dulu
-	queryApotek := `SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup FROM apotek WHERE id = $1`
+	queryApotek := `SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, jam_buka, jam_tutup, verification_status, created_at FROM apotek WHERE id = $1`
 	err := r.DB.Get(&apotek, queryApotek, id)
 	if err != nil {
 		return apotek, err
 	}
 
-	// 2. Ambil daftar obat yang ada di apotek tersebut
-	var obats []domain.Obat
-	queryObat := `SELECT id, apotek_id, nama, stok, harga, kategori FROM obat WHERE apotek_id = $1`
+	// 2. Inisialisasi slice dengan array kosong
+	obats := []domain.Obat{}
+
+	// 3. FIX: Tambahin ::INT di kolom harga biar gak bentrok sama int64 di struct Go
+	queryObat := `SELECT id, apotek_id, nama, stok, harga::INT FROM obat WHERE apotek_id = $1`
 	err = r.DB.Select(&obats, queryObat, id)
 	if err != nil {
-		// Kalau obatnya kosong, ga usah return error, biarin aja array-nya kosong
+		fmt.Printf("ERROR AMBIL OBAT: %v\n", err)
 		return apotek, nil
 	}
 
-	fmt.Printf("DEBUG: Ketemu %d obat buat apotek %s\n", len(obats), id) // Tambahin ini
 	apotek.Obats = obats
 
 	return apotek, nil

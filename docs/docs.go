@@ -16,44 +16,16 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/admin/apotek": {
-            "get": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Mengambil data lengkap apotek yang dikelola oleh admin yang sedang login",
-                "produces": [
+                "description": "Update informasi profil apotek termasuk jam operasional dan kontak",
+                "consumes": [
                     "application/json"
                 ],
-                "tags": [
-                    "Admin Apotek"
-                ],
-                "summary": "Melihat Profil Apotek Saya (Admin Only)",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Apotek"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
                 "produces": [
                     "application/json"
                 ],
@@ -61,7 +33,33 @@ const docTemplate = `{
                     "Apotek"
                 ],
                 "summary": "Update Profil Apotek Sendiri",
-                "responses": {}
+                "parameters": [
+                    {
+                        "description": "Data update apotek",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateApotekRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: profil apotek berhasil diupdate",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: format data tidak valid / pesan error lainnya",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             },
             "post": {
                 "produces": [
@@ -140,19 +138,66 @@ const docTemplate = `{
             }
         },
         "/admin/obat/:id": {
-            "put": {
-                "tags": [
-                    "Admin Obat"
-                ],
-                "summary": "Update data obat",
-                "responses": {}
-            },
             "delete": {
                 "tags": [
                     "Admin Obat"
                 ],
                 "summary": "Hapus obat",
                 "responses": {}
+            }
+        },
+        "/admin/obat/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update informasi nama, stok, atau harga obat oleh admin apotek",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Obat"
+                ],
+                "summary": "Update data obat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Obat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data update obat",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.ObatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: obat updated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error: invalid input / error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/admin/resep": {
@@ -266,15 +311,41 @@ const docTemplate = `{
                 "responses": {}
             }
         },
-        "/apotek/nearby": {
+        "/apotek": {
             "get": {
+                "description": "Get pharmacies within a certain radius and check if they are open",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "Apotek"
+                    "apotek"
                 ],
-                "summary": "Mencari Apotek Terdekat \u0026 Buka",
+                "summary": "Search nearby pharmacies",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Latitude",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude",
+                        "name": "lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Radius in km (default 5)",
+                        "name": "radius",
+                        "in": "query"
+                    }
+                ],
                 "responses": {}
             }
         },
@@ -314,6 +385,182 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cart": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil semua daftar obat yang ada di keranjang user saat ini",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Lihat isi keranjang",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CartResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "error: unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/checkout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat transaksi baru dari item-item yang ada di keranjang",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Proses Checkout",
+                "responses": {
+                    "201": {
+                        "description": "message: checkout success, data: transaksi",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Tambah obat ke keranjang",
+                "parameters": [
+                    {
+                        "description": "Data item keranjang",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.AddCartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/cart/items/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Update jumlah item di keranjang",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cart Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data update quantity",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCartRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus satu item obat dari keranjang belanja",
+                "tags": [
+                    "Keranjang"
+                ],
+                "summary": "Hapus item dari keranjang",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Cart Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message: item deleted",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -832,54 +1079,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "domain.Apotek": {
-            "type": "object",
-            "properties": {
-                "admin_id": {
-                    "type": "string"
-                },
-                "alamat": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "deskripsi": {
-                    "type": "string"
-                },
-                "distance": {
-                    "type": "number"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "jam_buka": {
-                    "type": "string"
-                },
-                "jam_tutup": {
-                    "type": "string"
-                },
-                "latitude": {
-                    "type": "number"
-                },
-                "longitude": {
-                    "type": "number"
-                },
-                "nama": {
-                    "type": "string"
-                },
-                "phone_number": {
-                    "description": "UBAH 3 FIELD INI JADI POINTER (*string) AGAR BISA MENERIMA NULL DARI DATABASE",
-                    "type": "string"
-                },
-                "rejection_reason": {
-                    "type": "string"
-                },
-                "verification_status": {
-                    "type": "string"
-                }
-            }
-        },
         "dto.APIResponse": {
             "type": "object",
             "properties": {
@@ -891,6 +1090,19 @@ const docTemplate = `{
                 "success": {
                     "type": "boolean",
                     "example": true
+                }
+            }
+        },
+        "dto.AddCartRequest": {
+            "type": "object",
+            "properties": {
+                "jumlah": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "obat_id": {
+                    "type": "string",
+                    "example": "0d744571-..."
                 }
             }
         },
@@ -930,6 +1142,46 @@ const docTemplate = `{
                 "token": {
                     "type": "string",
                     "example": "jwt_token_here"
+                }
+            }
+        },
+        "dto.CartItemResponse": {
+            "type": "object",
+            "properties": {
+                "harga": {
+                    "type": "number"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "jumlah": {
+                    "type": "integer"
+                },
+                "nama_obat": {
+                    "type": "string"
+                },
+                "obat_id": {
+                    "type": "string"
+                },
+                "subtotal": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.CartResponse": {
+            "type": "object",
+            "properties": {
+                "apotek_id": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.CartItemResponse"
+                    }
+                },
+                "total": {
+                    "type": "number"
                 }
             }
         },
@@ -1125,6 +1377,52 @@ const docTemplate = `{
                 },
                 "transaksi_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.UpdateApotekRequest": {
+            "type": "object",
+            "properties": {
+                "alamat": {
+                    "type": "string",
+                    "example": "Jl. Merdeka No. 45"
+                },
+                "deskripsi": {
+                    "type": "string",
+                    "example": "Apotek buka setiap hari dengan apoteker yang ramah."
+                },
+                "jam_buka": {
+                    "type": "string",
+                    "example": "08:00:00"
+                },
+                "jam_tutup": {
+                    "type": "string",
+                    "example": "22:00:00"
+                },
+                "latitude": {
+                    "type": "number",
+                    "example": -6.2
+                },
+                "longitude": {
+                    "type": "number",
+                    "example": 106.816666
+                },
+                "nama": {
+                    "type": "string",
+                    "example": "Apotek Sehat Sejahtera"
+                },
+                "phone_number": {
+                    "type": "string",
+                    "example": "081234567890"
+                }
+            }
+        },
+        "dto.UpdateCartRequest": {
+            "type": "object",
+            "properties": {
+                "jumlah": {
+                    "type": "integer",
+                    "example": 3
                 }
             }
         },

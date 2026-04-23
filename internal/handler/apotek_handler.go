@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -61,7 +62,6 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 // @Param lat query number true "Latitude"
 // @Param lng query number true "Longitude"
 // @Param radius query number false "Radius in km (default 5)"
-// @Success 200 {array} dto.ApotekNearbyResponse
 // @Router /apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
@@ -75,23 +75,21 @@ func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": apotek})
 }
 
+// UpdateMyApotek godoc
 // @Summary Update Profil Apotek Sendiri
+// @Description Update informasi profil apotek termasuk jam operasional dan kontak
 // @Tags Apotek
+// @Security BearerAuth
+// @Accept json
 // @Produce json
+// @Param request body dto.UpdateApotekRequest true "Data update apotek"
+// @Success 200 {object} map[string]interface{} "message: profil apotek berhasil diupdate"
+// @Failure 400 {object} map[string]interface{} "error: format data tidak valid / pesan error lainnya"
 // @Router /admin/apotek [put]
 func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
 
-	var req struct {
-		Nama        string  `json:"nama"`
-		Alamat      string  `json:"alamat"`
-		Latitude    float64 `json:"latitude"`
-		Longitude   float64 `json:"longitude"`
-		JamBuka     string  `json:"jam_buka"`
-		JamTutup    string  `json:"jam_tutup"`
-		PhoneNumber string  `json:"phone_number"` // Field baru
-		Deskripsi   string  `json:"deskripsi"`    // Field baru
-	}
+	var req dto.UpdateApotekRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "format data tidak valid"})
@@ -107,12 +105,6 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "profil apotek berhasil diupdate"})
 }
-
-// @Summary Mencari Apotek Terdekat & Buka
-// @Tags Apotek
-// @Produce json
-// @Success 200 {array} dto.ApotekNearbyResponse
-// @Router /apotek/nearby [get]
 
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 	// 1. Ambil Query Parameter
@@ -175,16 +167,6 @@ func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 	})
 }
 
-// GetByID godoc
-// @Summary Get full detail pharmacy
-// @Description Get detail information of a pharmacy including its medicine list
-// @Tags apotek
-// @Accept json
-// @Produce json
-// @Param id path string true "Apotek ID"
-// @Success 200 {object} dto.Response{data=dto.ApotekDetailResponse}
-// @Failure 404 {object} dto.Response
-// @Router /apotek/{id} [get]
 func (h *ApotekHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
 	apotek, err := h.Service.GetByID(id)

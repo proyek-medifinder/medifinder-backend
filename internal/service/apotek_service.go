@@ -61,6 +61,9 @@ func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long fl
 	apotek.Alamat = alamat
 	apotek.Latitude = lat
 	apotek.Longitude = long
+	apotek.JamBuka = &jamBuka
+	apotek.JamTutup = &jamTutup
+	apotek.PhoneNumber = &phoneNumber
 	apotek.Deskripsi = &deskripsi
 
 	return s.Repo.Update(apotek)

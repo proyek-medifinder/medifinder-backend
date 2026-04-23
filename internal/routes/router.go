@@ -18,7 +18,11 @@ import (
 
 func SetupRouter(db *sqlx.DB) *gin.Engine {
 
-	r := gin.Default()
+	r := gin.New()
+
+	r.Use(gin.Recovery())
+
+	r.Use(middleware.Logger())
 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins: []string{

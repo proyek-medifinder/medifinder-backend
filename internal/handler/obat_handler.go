@@ -47,9 +47,18 @@ func (h *ObatHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "obat created"})
 }
 
+// Update godoc
 // @Summary Update data obat
+// @Description Update informasi nama, stok, atau harga obat oleh admin apotek
 // @Tags Admin Obat
-// @Router /admin/obat/:id [put]
+// @Security BearerAuth
+// @Accept json
+// @Produce json
+// @Param id path string true "Obat ID"
+// @Param request body dto.ObatRequest true "Data update obat"
+// @Success 200 {object} map[string]interface{} "message: obat updated"
+// @Failure 400 {object} map[string]interface{} "error: invalid input / error message"
+// @Router /admin/obat/{id} [put]
 func (h *ObatHandler) Update(c *gin.Context) {
 	adminID := c.GetString("user_id")
 	obatID := c.Param("id")
