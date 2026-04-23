@@ -102,6 +102,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ++++++++++++++++++++++++++++++++++++++++++
 	r.GET("/apotek/:id/obat", obatHandler.GetByApotekPublic)
 	r.GET("/apotek/nearby", apotekHandler.SearchNearby)
+	r.GET("/apotek/:id", apotekHandler.GetByID)
 	// ++++++++++++++++++++++++++++++++++++++++++
 	r.POST("/payment/notify", paymentHandler.Notification)
 	// +++++++++++++++++++++++++++++++++++++++++

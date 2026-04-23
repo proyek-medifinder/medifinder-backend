@@ -80,3 +80,11 @@ func (s *ApotekService) SearchNearby(
 
 	return s.Repo.FindNearby(lat, lng, radius, limit, offset, currentTime)
 }
+
+func (s *ApotekService) GetByID(id string) (domain.Apotek, error) {
+	apotek, err := s.Repo.GetByID(id)
+	if err != nil {
+		return apotek, err
+	}
+	return apotek, nil
+}

@@ -111,7 +111,9 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 // @Summary Mencari Apotek Terdekat & Buka
 // @Tags Apotek
 // @Produce json
+// @Success 200 {array} dto.ApotekNearbyResponse
 // @Router /apotek/nearby [get]
+
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 	// 1. Ambil Query Parameter
 	latStr := c.Query("lat")
@@ -170,5 +172,30 @@ func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 			"total":      total,
 			"total_page": totalPage,
 		},
+	})
+}
+
+// GetByID godoc
+// @Summary Get full detail pharmacy
+// @Description Get detail information of a pharmacy including its medicine list
+// @Tags apotek
+// @Accept json
+// @Produce json
+// @Param id path string true "Apotek ID"
+// @Success 200 {object} dto.Response{data=dto.ApotekDetailResponse}
+// @Failure 404 {object} dto.Response
+// @Router /apotek/{id} [get]
+func (h *ApotekHandler) GetByID(c *gin.Context) {
+	id := c.Param("id")
+	apotek, err := h.Service.GetByID(id)
+	if err != nil {
+		c.JSON(404, gin.H{"error": "Apotek kaga ada"})
+		return
+	}
+
+	// Balikin lgsg apotek-nya buat ngetes
+	c.JSON(200, gin.H{
+		"message": "Mantap dapet",
+		"data":    apotek,
 	})
 }

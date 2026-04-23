@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
@@ -160,4 +162,29 @@ func (r *ApotekRepository) FindNearby(
 	}
 
 	return list, total, nil
+}
+
+func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
+	var apotek domain.Apotek
+
+	// 1. Ambil data apoteknya dulu
+	queryApotek := `SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup FROM apotek WHERE id = $1`
+	err := r.DB.Get(&apotek, queryApotek, id)
+	if err != nil {
+		return apotek, err
+	}
+
+	// 2. Ambil daftar obat yang ada di apotek tersebut
+	var obats []domain.Obat
+	queryObat := `SELECT id, apotek_id, nama, stok, harga, kategori FROM obat WHERE apotek_id = $1`
+	err = r.DB.Select(&obats, queryObat, id)
+	if err != nil {
+		// Kalau obatnya kosong, ga usah return error, biarin aja array-nya kosong
+		return apotek, nil
+	}
+
+	fmt.Printf("DEBUG: Ketemu %d obat buat apotek %s\n", len(obats), id) // Tambahin ini
+	apotek.Obats = obats
+
+	return apotek, nil
 }
