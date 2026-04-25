@@ -33,13 +33,16 @@ func verifyMidtransSignature(req MidtransNotification, serverKey string) bool {
 }
 
 // PaymentNotification godoc
-// @Summary Callback notifikasi pembayaran
-// @Description Endpoint untuk menerima notifikasi pembayaran dari Midtrans
+// @Summary Webhook notifikasi pembayaran
+// @Description Endpoint callback dari Midtrans untuk update status transaksi (tidak untuk publik)
 // @Tags Payment
 // @Accept json
 // @Produce json
 // @Param payload body dto.PaymentNotification true "Midtrans notification payload"
-// @Success 200 {object} dto.APIResponse
+// @Success 200 {object} map[string]string "ok"
+// @Failure 400 {object} map[string]string "invalid payload"
+// @Failure 401 {object} map[string]string "invalid signature"
+// @Failure 500 {object} map[string]string "internal error"
 // @Router /payment/notify [post]
 func (h *PaymentHandler) Notification(c *gin.Context) {
 

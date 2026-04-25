@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   dto.APIResponse:
     properties:
@@ -300,8 +301,14 @@ definitions:
     type: object
 host: localhost:8080
 info:
-  contact: {}
-  description: API Server for Medifinder Application
+  contact:
+    email: cs.medifinder@gmail.com
+    name: API Support
+  description: API untuk mencari apotek terdekat, reservasi obat, dan transaksi pembayaran
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
   title: Medifinder API
   version: "1.0"
 paths:
@@ -459,13 +466,36 @@ paths:
       summary: Tambahkan obat baru
       tags:
       - Admin Obat
-  /admin/obat/:id:
+  /admin/obat/{id}:
     delete:
-      responses: {}
+      description: Menghapus data obat milik admin apotek
+      parameters:
+      - description: Obat ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: obat deleted
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error message
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
       summary: Hapus obat
       tags:
       - Admin Obat
-  /admin/obat/{id}:
     put:
       consumes:
       - application/json
@@ -571,30 +601,35 @@ paths:
       - Admin Transaksi
   /apotek:
     get:
-      consumes:
-      - application/json
-      description: Get pharmacies within a certain radius and check if they are open
-      parameters:
-      - description: Latitude
-        in: query
-        name: lat
-        required: true
-        type: number
-      - description: Longitude
-        in: query
-        name: lng
-        required: true
-        type: number
-      - description: Radius in km (default 5)
-        in: query
-        name: radius
-        type: number
+      description: Mengambil data apotek yang dimiliki oleh admin yang sedang login
       produces:
       - application/json
-      responses: {}
-      summary: Search nearby pharmacies
+      responses:
+        "200":
+          description: data apotek
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: apotek tidak ditemukan
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lihat apotek milik admin
       tags:
-      - apotek
+      - Admin Apotek
   /apotek/{id}/obat:
     get:
       parameters:
@@ -624,6 +659,55 @@ paths:
       summary: Lihat daftar obat di apotek tertentu (Public)
       tags:
       - Obat
+  /apotek/nearby:
+    get:
+      consumes:
+      - application/json
+      description: Mengambil daftar apotek berdasarkan lokasi user (latitude & longitude)
+      parameters:
+      - description: Latitude user
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude user
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: Radius pencarian dalam km (default 5, max 50)
+        in: query
+        name: radius
+        type: number
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Limit data
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: list apotek + pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: invalid parameter
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Cari apotek terdekat
+      tags:
+      - Apotek
   /cart:
     get:
       description: Mengambil semua daftar obat yang ada di keranjang user saat ini
@@ -648,18 +732,34 @@ paths:
     post:
       consumes:
       - application/json
-      description: Membuat transaksi baru dari item-item yang ada di keranjang
+      description: Membuat transaksi baru dari item dalam keranjang dan mengembalikan
+        token pembayaran
       produces:
       - application/json
       responses:
-        "201":
-          description: 'message: checkout success, data: transaksi'
+        "200":
+          description: transaksi_id, snap_token, redirect_url
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: cart kosong / stok tidak cukup
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal error
           schema:
             additionalProperties: true
             type: object
       security:
       - BearerAuth: []
-      summary: Proses Checkout
+      summary: Checkout keranjang
       tags:
       - Keranjang
   /cart/items:
@@ -824,8 +924,9 @@ paths:
     post:
       consumes:
       - application/json
+      description: Autentikasi user dan mengembalikan JWT token
       parameters:
-      - description: Login data
+      - description: Email & Password
         in: body
         name: request
         required: true
@@ -835,11 +936,19 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: token, user info
           schema:
             $ref: '#/definitions/dto.AuthResponse'
+        "400":
+          description: invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "401":
-          description: Unauthorized
+          description: invalid credentials
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: internal error
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Login user
@@ -864,7 +973,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Endpoint untuk menerima notifikasi pembayaran dari Midtrans
+      description: Endpoint callback dari Midtrans untuk update status transaksi (tidak
+        untuk publik)
       parameters:
       - description: Midtrans notification payload
         in: body
@@ -876,10 +986,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: ok
           schema:
-            $ref: '#/definitions/dto.APIResponse'
-      summary: Callback notifikasi pembayaran
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: invalid payload
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: invalid signature
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Webhook notifikasi pembayaran
       tags:
       - Payment
   /register:
@@ -1113,14 +1243,35 @@ paths:
       - SuperAdmin
   /transaksi:
     get:
+      description: Mengambil daftar transaksi milik user yang sedang login
       parameters:
-      - description: Filter Status
+      - description: Filter status transaksi
         in: query
         name: status
         type: string
+      - description: Page
+        in: query
+        name: page
+        type: integer
+      - description: Limit
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
       responses:
         "200":
-          description: OK
+          description: data + pagination
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: internal error
           schema:
             additionalProperties: true
             type: object
@@ -1148,4 +1299,9 @@ paths:
       summary: Detail transaksi
       tags:
       - Transaksi
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

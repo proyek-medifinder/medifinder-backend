@@ -9,7 +9,15 @@ const docTemplate = `{
     "info": {
         "description": "{{escape .Description}}",
         "title": "{{.Title}}",
-        "contact": {},
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "email": "cs.medifinder@gmail.com"
+        },
+        "license": {
+            "name": "MIT",
+            "url": "https://opensource.org/licenses/MIT"
+        },
         "version": "{{.Version}}"
     },
     "host": "{{.Host}}",
@@ -254,15 +262,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/admin/obat/:id": {
-            "delete": {
-                "tags": [
-                    "Admin Obat"
-                ],
-                "summary": "Hapus obat",
-                "responses": {}
-            }
-        },
         "/admin/obat/{id}": {
             "put": {
                 "security": [
@@ -309,6 +308,50 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "error: invalid input / error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus data obat milik admin apotek",
+                "tags": [
+                    "Admin Obat"
+                ],
+                "summary": "Hapus obat",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Obat ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "obat deleted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -430,7 +473,54 @@ const docTemplate = `{
         },
         "/apotek": {
             "get": {
-                "description": "Get pharmacies within a certain radius and check if they are open",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil data apotek yang dimiliki oleh admin yang sedang login",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin Apotek"
+                ],
+                "summary": "Lihat apotek milik admin",
+                "responses": {
+                    "200": {
+                        "description": "data apotek",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "apotek tidak ditemukan",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/apotek/nearby": {
+            "get": {
+                "description": "Mengambil daftar apotek berdasarkan lokasi user (latitude \u0026 longitude)",
                 "consumes": [
                     "application/json"
                 ],
@@ -438,32 +528,66 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "apotek"
+                    "Apotek"
                 ],
-                "summary": "Search nearby pharmacies",
+                "summary": "Cari apotek terdekat",
                 "parameters": [
                     {
                         "type": "number",
-                        "description": "Latitude",
+                        "description": "Latitude user",
                         "name": "lat",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "number",
-                        "description": "Longitude",
+                        "description": "Longitude user",
                         "name": "lng",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "number",
-                        "description": "Radius in km (default 5)",
+                        "description": "Radius pencarian dalam km (default 5, max 50)",
                         "name": "radius",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit data",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
-                "responses": {}
+                "responses": {
+                    "200": {
+                        "description": "list apotek + pagination",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "invalid parameter",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
             }
         },
         "/apotek/{id}/obat": {
@@ -549,7 +673,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Membuat transaksi baru dari item-item yang ada di keranjang",
+                "description": "Membuat transaksi baru dari item dalam keranjang dan mengembalikan token pembayaran",
                 "consumes": [
                     "application/json"
                 ],
@@ -559,10 +683,31 @@ const docTemplate = `{
                 "tags": [
                     "Keranjang"
                 ],
-                "summary": "Proses Checkout",
+                "summary": "Checkout keranjang",
                 "responses": {
-                    "201": {
-                        "description": "message: checkout success, data: transaksi",
+                    "200": {
+                        "description": "transaksi_id, snap_token, redirect_url",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "cart kosong / stok tidak cukup",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -818,6 +963,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
+                "description": "Autentikasi user dan mengembalikan JWT token",
                 "consumes": [
                     "application/json"
                 ],
@@ -830,7 +976,7 @@ const docTemplate = `{
                 "summary": "Login user",
                 "parameters": [
                     {
-                        "description": "Login data",
+                        "description": "Email \u0026 Password",
                         "name": "request",
                         "in": "body",
                         "required": true,
@@ -841,13 +987,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "token, user info",
                         "schema": {
                             "$ref": "#/definitions/dto.AuthResponse"
                         }
                     },
+                    "400": {
+                        "description": "invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
                     "401": {
-                        "description": "Unauthorized",
+                        "description": "invalid credentials",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -882,7 +1040,7 @@ const docTemplate = `{
         },
         "/payment/notify": {
             "post": {
-                "description": "Endpoint untuk menerima notifikasi pembayaran dari Midtrans",
+                "description": "Endpoint callback dari Midtrans untuk update status transaksi (tidak untuk publik)",
                 "consumes": [
                     "application/json"
                 ],
@@ -892,7 +1050,7 @@ const docTemplate = `{
                 "tags": [
                     "Payment"
                 ],
-                "summary": "Callback notifikasi pembayaran",
+                "summary": "Webhook notifikasi pembayaran",
                 "parameters": [
                     {
                         "description": "Midtrans notification payload",
@@ -906,9 +1064,39 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "ok",
                         "schema": {
-                            "$ref": "#/definitions/dto.APIResponse"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "invalid payload",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "invalid signature",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -1278,6 +1466,10 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
+                "description": "Mengambil daftar transaksi milik user yang sedang login",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "Transaksi"
                 ],
@@ -1285,14 +1477,40 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter Status",
+                        "description": "Filter status transaksi",
                         "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit",
+                        "name": "limit",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "data + pagination",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "internal error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1766,6 +1984,13 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
@@ -1773,10 +1998,10 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Medifinder API",
-	Description:      "API Server for Medifinder Application",
+	Description:      "API untuk mencari apotek terdekat, reservasi obat, dan transaksi pembayaran",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

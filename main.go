@@ -15,9 +15,22 @@ import (
 
 // @title Medifinder API
 // @version 1.0
-// @description API Server for Medifinder Application
+// @description API untuk mencari apotek terdekat, reservasi obat, dan transaksi pembayaran
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email cs.medifinder@gmail.com
+
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+
 // @host localhost:8080
-// @BasePath
+// @BasePath /api/v1
+
+// 🔐 JWT AUTH
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
 
 	if err := godotenv.Load(); err != nil {

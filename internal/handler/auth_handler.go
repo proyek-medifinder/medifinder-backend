@@ -49,12 +49,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 // Login godoc
 // @Summary Login user
+// @Description Autentikasi user dan mengembalikan JWT token
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param request body dto.LoginRequest true "Login data"
-// @Success 200 {object} dto.AuthResponse
-// @Failure 401 {object} dto.ErrorResponse
+// @Param request body dto.LoginRequest true "Email & Password"
+// @Success 200 {object} dto.AuthResponse "token, user info"
+// @Failure 400 {object} dto.ErrorResponse "invalid input"
+// @Failure 401 {object} dto.ErrorResponse "invalid credentials"
+// @Failure 500 {object} dto.ErrorResponse "internal error"
 // @Router /login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {

@@ -14,10 +14,16 @@ type TransaksiHandler struct {
 
 // UserHistory godoc
 // @Summary Riwayat transaksi user
+// @Description Mengambil daftar transaksi milik user yang sedang login
 // @Tags Transaksi
 // @Security BearerAuth
-// @Param status query string false "Filter Status"
-// @Success 200 {object} map[string]interface{}
+// @Produce json
+// @Param status query string false "Filter status transaksi"
+// @Param page query int false "Page"
+// @Param limit query int false "Limit"
+// @Success 200 {object} map[string]interface{} "data + pagination"
+// @Failure 401 {object} map[string]interface{} "unauthorized"
+// @Failure 500 {object} map[string]interface{} "internal error"
 // @Router /transaksi [get]
 func (h *TransaksiHandler) UserHistory(c *gin.Context) {
 

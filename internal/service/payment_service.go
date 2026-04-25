@@ -22,23 +22,23 @@ func (s *PaymentService) HandleNotification(
 
 	var currentStatus string
 	err = tx.Get(&currentStatus, `
-        SELECT status
-        FROM transaksi
-        WHERE id = $1
-    `, orderID)
-
+		SELECT status
+		FROM transaksi
+		WHERE id = $1
+	`, orderID)
 	if err != nil {
 		return err
 	}
 
-	if currentStatus == "paid" {
+	// 🔒 Idempotency kuat
+	if currentStatus != "pending" {
 		return tx.Commit()
 	}
 
 	switch transactionStatus {
 
 	case "capture":
-		if fraudStatus == "challenge" {
+		if fraudStatus != "accept" {
 			return tx.Commit()
 		}
 		fallthrough
@@ -49,31 +49,24 @@ func (s *PaymentService) HandleNotification(
 		}
 
 	case "cancel", "deny", "expire", "failure":
-		if currentStatus != "paid" {
-			_, err = tx.Exec(`
-                UPDATE transaksi
-                SET status = 'cancelled'
-                WHERE id = $1
-            `, orderID)
-			if err != nil {
-				return err
-			}
-		}
-
-	case "pending", "authorize":
-		// Tidak perlu apa-apa
-
-	case "refund", "partial_refund":
 		_, err = tx.Exec(`
-            UPDATE transaksi
-            SET status = 'refunded'
-            WHERE id = $1
-        `, orderID)
+			UPDATE transaksi
+			SET status = 'cancelled'
+			WHERE id = $1 AND status = 'pending'
+		`, orderID)
 		if err != nil {
 			return err
 		}
 
-	default:
+	case "refund", "partial_refund":
+		_, err = tx.Exec(`
+			UPDATE transaksi
+			SET status = 'refunded'
+			WHERE id = $1
+		`, orderID)
+		if err != nil {
+			return err
+		}
 	}
 
 	return tx.Commit()
@@ -82,10 +75,24 @@ func (s *PaymentService) HandleNotification(
 func (s *PaymentService) markAsPaid(tx *sqlx.Tx, orderID string) error {
 
 	_, err := tx.Exec(`
-        UPDATE transaksi
-        SET status = 'paid'
-        WHERE id = $1
-    `, orderID)
+		UPDATE obat o
+		SET 
+			stok = o.stok - d.jumlah,
+			reserved_stock = o.reserved_stock - d.jumlah
+		FROM detail_transaksi d
+		WHERE d.obat_id = o.id
+		AND d.transaksi_id = $1
+	`, orderID)
+	if err != nil {
+		return err
+	}
+
+	// update status
+	_, err = tx.Exec(`
+		UPDATE transaksi
+		SET status = 'paid'
+		WHERE id = $1 AND status = 'pending'
+	`, orderID)
 
 	return err
 }

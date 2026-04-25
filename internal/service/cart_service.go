@@ -199,80 +199,86 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		return "", "", "", errors.New("cart kosong")
 	}
 
-	var total float64 = 0
 	transaksiID := uuid.New()
+	var total float64 = 0
 
-	type DetailData struct {
+	type Detail struct {
 		ObatID uuid.UUID
 		Jumlah int
 		Harga  float64
 	}
-	var detailsToInsert []DetailData
+	var details []Detail
 
 	for _, item := range items {
+
 		var obat domain.Obat
 
-		// Gunakan tx.Get dan FOR UPDATE untuk mencegah overselling (Race Condition)
-		err = tx.Get(&obat, "SELECT id, apotek_id, nama, stok, harga FROM obat WHERE id=$1 FOR UPDATE", item.ObatID)
-		if err != nil {
-			return "", "", "", errors.New("gagal mengambil data obat")
-		}
-
-		if item.Jumlah > obat.Stok {
-			return "", "", "", errors.New("stok tidak cukup untuk obat: " + obat.Nama)
-		}
-
-		total += obat.Harga * float64(item.Jumlah)
-
-		// RESERVE STOCK: Langsung kurangi stok di database sekarang juga
-		_, err = tx.Exec("UPDATE obat SET stok = stok - $1 WHERE id = $2", item.Jumlah, item.ObatID)
+		// 🔒 LOCK ROW
+		err = tx.Get(&obat, `
+			SELECT id, stok, reserved_stock, harga 
+			FROM obat 
+			WHERE id = $1 
+			FOR UPDATE
+		`, item.ObatID)
 		if err != nil {
 			return "", "", "", err
 		}
 
-		detailsToInsert = append(detailsToInsert, DetailData{
+		available := obat.Stok - obat.ReservedStock
+
+		if item.Jumlah > available {
+			return "", "", "", errors.New("stok tidak cukup untuk obat")
+		}
+
+		_, err = tx.Exec(`
+			UPDATE obat
+			SET reserved_stock = reserved_stock + $1
+			WHERE id = $2
+		`, item.Jumlah, item.ObatID)
+		if err != nil {
+			return "", "", "", err
+		}
+
+		total += obat.Harga * float64(item.Jumlah)
+
+		details = append(details, Detail{
 			ObatID: item.ObatID,
 			Jumlah: item.Jumlah,
 			Harga:  obat.Harga,
 		})
 	}
 
-	// 2. Insert tabel transaksi
-	// 2. Insert tabel transaksi (HAPUS expired_at karena udah gak ada di DB)
 	_, err = tx.Exec(`
-	INSERT INTO transaksi (id, user_id, apotek_id, total)
-	VALUES ($1, $2, $3, $4)
+		INSERT INTO transaksi (id, user_id, apotek_id, total, status)
+		VALUES ($1, $2, $3, $4, 'pending')
 	`, transaksiID, uuid.MustParse(userID), cart.ApotekID, total)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// 3. Insert tabel detail_transaksi
-	for _, d := range detailsToInsert {
+	for _, d := range details {
 		_, err = tx.Exec(`
-		INSERT INTO detail_transaksi (id, transaksi_id, obat_id, jumlah, harga)
-		VALUES ($1, $2, $3, $4, $5)
+			INSERT INTO detail_transaksi (id, transaksi_id, obat_id, jumlah, harga)
+			VALUES ($1, $2, $3, $4, $5)
 		`, uuid.New(), transaksiID, d.ObatID, d.Jumlah, d.Harga)
 		if err != nil {
 			return "", "", "", err
 		}
 	}
 
-	// HAPUS cart_item (TYPO FIX: nama tabel di DB lu itu cart_item, bukan cart_items)
+	// hapus cart
 	_, err = tx.Exec(`DELETE FROM cart_item WHERE cart_id=$1`, cart.ID)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// ================= MIDTRANS SNAP =================
-	// Kita pindahin Midtrans ke atas SANGAT PENTING sebelum tx.Commit()
-	var snapClient snap.Client
-	isProduction := os.Getenv("MIDTRANS_IS_PRODUCTION") == "true"
-	if isProduction {
-		snapClient.New(os.Getenv("MIDTRANS_SERVER_KEY"), midtrans.Production)
-	} else {
-		snapClient.New(os.Getenv("MIDTRANS_SERVER_KEY"), midtrans.Sandbox)
+	if err := tx.Commit(); err != nil {
+		return "", "", "", err
 	}
+
+	// ================= MIDTRANS =================
+	var snapClient snap.Client
+	snapClient.New(os.Getenv("MIDTRANS_SERVER_KEY"), midtrans.Sandbox)
 
 	req := &snap.Request{
 		TransactionDetails: midtrans.TransactionDetails{
@@ -281,26 +287,21 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		},
 	}
 
-	snapResp, midtransErr := snapClient.CreateTransaction(req)
-	if midtransErr != nil {
-		return "", "", "", midtransErr
-	}
-
-	// 4. UPDATE transaksi buat nyimpen Token & URL dari Midtrans
-	_, err = tx.Exec(`
-		UPDATE transaksi
-		SET snap_token = $1, payment_url = $2
-		WHERE id = $3
-	`, snapResp.Token, snapResp.RedirectURL, transaksiID)
+	resp, err := snapClient.CreateTransaction(req)
 	if err != nil {
 		return "", "", "", err
 	}
 
-	// 5. COMMIT SEMUA TRANSAKSI KE DATABASE
-	if err := tx.Commit(); err != nil {
+	// update token di luar tx
+	_, err = s.CartRepo.DB.Exec(`
+		UPDATE transaksi
+		SET snap_token = $1, payment_url = $2
+		WHERE id = $3
+	`, resp.Token, resp.RedirectURL, transaksiID)
+
+	if err != nil {
 		return "", "", "", err
 	}
 
-	return transaksiID.String(), snapResp.Token, snapResp.RedirectURL, nil
-
+	return transaksiID.String(), resp.Token, resp.RedirectURL, nil
 }

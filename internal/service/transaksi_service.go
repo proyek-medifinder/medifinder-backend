@@ -22,53 +22,37 @@ func (s *TransaksiService) CancelExpiredTransactions() error {
 	}
 	defer tx.Rollback()
 
-	var transaksiIDs []uuid.UUID
-
-	err = tx.Select(&transaksiIDs, `
+	var ids []uuid.UUID
+	err = tx.Select(&ids, `
 		SELECT id
 		FROM transaksi
 		WHERE status = 'pending'
-		-- Ini logikanya: cari transaksi yang dibuat lebih dari 15 menit yang lalu
-		AND created_at < NOW() - INTERVAL '15 minutes' 
+		AND created_at < NOW() - INTERVAL '15 minutes'
+		FOR UPDATE SKIP LOCKED
 	`)
 	if err != nil {
 		return err
 	}
 
-	for _, transaksiID := range transaksiIDs {
+	for _, id := range ids {
 
-		type Detail struct {
-			ObatID uuid.UUID `db:"obat_id"`
-			Jumlah int       `db:"jumlah"`
-		}
-
-		var details []Detail
-
-		err = tx.Select(&details, `
-			SELECT obat_id, jumlah
-			FROM detail_transaksi
-			WHERE transaksi_id = $1
-		`, transaksiID)
+		// 🔥 RELEASE RESERVED STOCK
+		_, err = tx.Exec(`
+			UPDATE obat o
+			SET reserved_stock = o.reserved_stock - d.jumlah
+			FROM detail_transaksi d
+			WHERE d.obat_id = o.id
+			AND d.transaksi_id = $1
+		`, id)
 		if err != nil {
 			return err
-		}
-
-		for _, d := range details {
-			_, err = tx.Exec(`
-				UPDATE obat
-				SET stok = stok + $1
-				WHERE id = $2
-			`, d.Jumlah, d.ObatID)
-			if err != nil {
-				return err
-			}
 		}
 
 		_, err = tx.Exec(`
 			UPDATE transaksi
 			SET status = 'cancelled'
-			WHERE id = $1
-		`, transaksiID)
+			WHERE id = $1 AND status = 'pending'
+		`, id)
 		if err != nil {
 			return err
 		}

@@ -74,15 +74,16 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 	c.JSON(201, gin.H{"message": "Apotek berhasil dibuat"})
 }
 
-// SearchNearby godoc
-// @Summary Search nearby pharmacies
-// @Description Get pharmacies within a certain radius and check if they are open
-// @Tags apotek
-// @Accept json
+// GetMyApotek godoc
+// @Summary Lihat apotek milik admin
+// @Description Mengambil data apotek yang dimiliki oleh admin yang sedang login
+// @Tags Admin Apotek
+// @Security BearerAuth
 // @Produce json
-// @Param lat query number true "Latitude"
-// @Param lng query number true "Longitude"
-// @Param radius query number false "Radius in km (default 5)"
+// @Success 200 {object} map[string]interface{} "data apotek"
+// @Failure 401 {object} map[string]interface{} "unauthorized"
+// @Failure 404 {object} map[string]interface{} "apotek tidak ditemukan"
+// @Failure 500 {object} map[string]interface{} "internal error"
 // @Router /apotek [get]
 func (h *ApotekHandler) GetMyApotek(c *gin.Context) {
 	adminID := c.GetString("user_id")
@@ -127,6 +128,21 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "profil apotek berhasil diupdate"})
 }
 
+// SearchNearby godoc
+// @Summary Cari apotek terdekat
+// @Description Mengambil daftar apotek berdasarkan lokasi user (latitude & longitude)
+// @Tags Apotek
+// @Accept json
+// @Produce json
+// @Param lat query number true "Latitude user"
+// @Param lng query number true "Longitude user"
+// @Param radius query number false "Radius pencarian dalam km (default 5, max 50)"
+// @Param page query int false "Page number"
+// @Param limit query int false "Limit data"
+// @Success 200 {object} map[string]interface{} "list apotek + pagination"
+// @Failure 400 {object} map[string]interface{} "invalid parameter"
+// @Failure 500 {object} map[string]interface{} "internal error"
+// @Router /apotek/nearby [get]
 func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 	// 1. Ambil Query Parameter
 	latStr := c.Query("lat")

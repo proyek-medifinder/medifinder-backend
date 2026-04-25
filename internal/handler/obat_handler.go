@@ -84,9 +84,16 @@ func (h *ObatHandler) Update(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "obat updated"})
 }
 
+// Delete godoc
 // @Summary Hapus obat
+// @Description Menghapus data obat milik admin apotek
 // @Tags Admin Obat
-// @Router /admin/obat/:id [delete]
+// @Security BearerAuth
+// @Param id path string true "Obat ID"
+// @Success 200 {object} map[string]interface{} "obat deleted"
+// @Failure 400 {object} map[string]interface{} "error message"
+// @Failure 401 {object} map[string]interface{} "unauthorized"
+// @Router /admin/obat/{id} [delete]
 func (h *ObatHandler) Delete(c *gin.Context) {
 	adminID := c.GetString("user_id")
 	obatID := c.Param("id")

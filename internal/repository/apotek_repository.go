@@ -93,7 +93,6 @@ func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	return err
 }
 
-// Fitur Filter Jarak + Jam Operasional Terbuka
 func (r *ApotekRepository) FindNearby(
 	lat, lng float64,
 	radius float64,

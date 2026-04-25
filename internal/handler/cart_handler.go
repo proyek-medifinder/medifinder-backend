@@ -109,13 +109,16 @@ func (h *CartHandler) DeleteItem(c *gin.Context) {
 }
 
 // Checkout godoc
-// @Summary Proses Checkout
-// @Description Membuat transaksi baru dari item-item yang ada di keranjang
+// @Summary Checkout keranjang
+// @Description Membuat transaksi baru dari item dalam keranjang dan mengembalikan token pembayaran
 // @Tags Keranjang
 // @Security BearerAuth
 // @Accept json
 // @Produce json
-// @Success 201 {object} map[string]interface{} "message: checkout success, data: transaksi"
+// @Success 200 {object} map[string]interface{} "transaksi_id, snap_token, redirect_url"
+// @Failure 400 {object} map[string]interface{} "cart kosong / stok tidak cukup"
+// @Failure 401 {object} map[string]interface{} "unauthorized"
+// @Failure 500 {object} map[string]interface{} "internal error"
 // @Router /cart/checkout [post]
 func (h *CartHandler) Checkout(c *gin.Context) {
 	userID := c.GetString("user_id")
