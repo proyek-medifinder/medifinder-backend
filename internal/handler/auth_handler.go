@@ -103,12 +103,25 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// ForgotPassword godoc
+// @Summary      Request Reset Password
+// @Description  Mengirimkan link/token ke email admin untuk melakukan reset password
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ForgotPasswordRequest true "Email Admin"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]interface{}
+// @Router       /forgot-password [post]
 func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	var req struct {
-		Email string `json:"email"`
+		Email string `json:"email" binding:"required,email"`
 	}
 
-	c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format email tidak valid"})
+		return
+	}
 
 	h.Service.ForgotPassword(req.Email)
 
@@ -117,34 +130,79 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	})
 }
 
+// ResetPassword godoc
+// @Summary      Reset Password via Token
+// @Description  Membuat password baru menggunakan token yang dikirimkan via email
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        request body dto.ResetPasswordRequest true "Token dari Email & Password Baru"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]interface{}
+// @Router       /reset-password [post]
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	var req struct {
-		Token       string `json:"token"`
-		NewPassword string `json:"new_password"`
+		Token       string `json:"token" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=6"`
 	}
 
-	c.ShouldBindJSON(&req)
-
-	err := h.Service.ResetPassword(req.Token, req.NewPassword)
-	if err != nil {
-		c.JSON(400, gin.H{"error": "token tidak valid"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token dan password baru (minimal 6 karakter) wajib diisi"})
 		return
 	}
 
-	c.JSON(200, gin.H{"message": "password berhasil direset"})
-}
-
-func (h *AuthHandler) ChangePassword(c *gin.Context) {
-	var req struct {
-		Email       string `json:"email"`
-		NewPassword string `json:"new_password"`
+	err := h.Service.ResetPassword(req.Token, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	c.ShouldBindJSON(&req)
+	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil direset"})
+}
 
-	h.Service.ChangePassword(req.Email, req.NewPassword)
+// ChangePassword godoc
+// @Summary      Ganti Password (Login Required)
+// @Description  Mengganti password admin yang sedang aktif (harus tahu password lama)
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Security     Bearer
+// @Param        request body dto.ChangePasswordRequest true "Password Lama dan Password Baru"
+// @Success      200 {object} map[string]interface{}
+// @Failure      400 {object} map[string]interface{}
+// @Failure      401 {object} map[string]interface{}
+// @Router       /change-password [post]
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	var req struct {
+		OldPassword string `json:"old_password" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required,min=6"`
+	}
 
-	c.JSON(200, gin.H{"message": "password berhasil diganti"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password lama dan baru wajib diisi"})
+		return
+	}
+
+	// AMAN: Ambil ID dari token JWT yang lagi login, bukan dari body request
+	userIDClaim, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	userID, err := uuid.Parse(userIDClaim.(string))
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user ID format"})
+		return
+	}
+
+	err = h.Service.ChangePassword(userID, req.OldPassword, req.NewPassword)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password berhasil diganti"})
 }
 
 // RegisterAdmin godoc

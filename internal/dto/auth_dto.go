@@ -19,12 +19,12 @@ type AuthResponse struct {
 }
 
 type ForgotPasswordRequest struct {
-	Email string `json:"email" binding:"required,email"`
+	Email string `json:"email" binding:"required,email" example:"admin.apotek@gmail.com"`
 }
 
 type ResetPasswordRequest struct {
-	Token       string `json:"token" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"`
+	Token       string `json:"token" binding:"required" example:"abc-123-xyz-token"`
+	NewPassword string `json:"new_password" binding:"required,min=6" example:"passwordBaru123"`
 }
 
 type GoogleLoginRequest struct {
@@ -32,8 +32,8 @@ type GoogleLoginRequest struct {
 }
 
 type ChangePasswordRequest struct {
-	OldPassword string `json:"old_password" binding:"required"`
-	NewPassword string `json:"new_password" binding:"required,min=6"` // min=6 artinya minimal 6 karakter
+	OldPassword string `json:"old_password" binding:"required" example:"passwordLama123"`
+	NewPassword string `json:"new_password" binding:"required,min=6" example:"passwordBaru123"`
 }
 
 type RegisterAdminRequest struct {

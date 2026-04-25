@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"gopkg.in/gomail.v2"
 
 	"github.com/sasaefulanwar/medifinder/internal/domain"
 	"github.com/sasaefulanwar/medifinder/internal/dto"
@@ -31,6 +29,8 @@ var (
 type AuthService struct {
 	UserRepo *repository.UserRepository
 }
+
+// +++++++++++++++++ AUTH SERVICES BELOW +++++++++++++++++
 
 func (s *AuthService) Register(name, email, password string) error {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -165,51 +165,6 @@ func generateRandomToken() string {
 	return hex.EncodeToString(bytes)
 }
 
-func (s *AuthService) sendEmailGomail(toEmail string, token string) {
-	m := gomail.NewMessage()
-	m.SetHeader("From", "cs.medifinder@gmail.com")
-	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", "Reset Password Akun Medifinder")
-
-	// Perbaikan os.Getenv
-	baseURL := os.Getenv("APP_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:3000"
-	}
-	resetLink := fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
-
-	htmlBody := fmt.Sprintf(`
-		<h3>Halo,</h3>
-		<p>Kami menerima permintaan untuk mereset password akun Medifinder Anda.</p>
-		<p>Silakan klik link di bawah ini untuk mereset password Anda:</p>
-		<a href="%s" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
-		<br><br>
-		<p>Jika Anda tidak pernah meminta reset password, abaikan email ini.</p>
-	`, resetLink)
-
-	m.SetBody("text/html", htmlBody)
-
-	// Ambil port dari .env, default ke 465 jika tidak diset
-	portStr := os.Getenv("SMTP_PORT")
-	port, err := strconv.Atoi(portStr)
-	if err != nil || port == 0 {
-		port = 465
-	}
-
-	d := gomail.NewDialer(
-		os.Getenv("SMTP_HOST"),
-		port,
-		os.Getenv("SMTP_EMAIL"),
-		os.Getenv("SMTP_PASS"),
-	)
-
-	if err := d.DialAndSend(m); err != nil {
-		log.Println("❌ GAGAL kirim email ke", toEmail, "Error:", err)
-	} else {
-		log.Println("✅ SUKSES kirim email reset password ke:", toEmail)
-	}
-}
-
 func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
 	user, err := s.UserRepo.GetUserProfile(userID)
 	if err != nil {
@@ -234,7 +189,15 @@ func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
 	}, nil
 }
 
+// +++++++++++++++++ PASSWORD RELATED SERVICES BELOW +++++++++++++++++
+
 func (s *AuthService) ForgotPassword(email string) {
+	user, _ := s.UserRepo.FindByEmail(email)
+	name := "User"
+	if user != nil {
+		name = user.Name
+	}
+
 	token, _ := utils.GenerateResetToken(email)
 
 	baseURL := os.Getenv("APP_URL")
@@ -242,20 +205,24 @@ func (s *AuthService) ForgotPassword(email string) {
 		baseURL = "http://localhost:3000"
 	}
 
-	resetLink := fmt.Sprintf(
-		"%s/reset-password?token=%s",
-		baseURL,
-		token,
-	)
+	resetLink := fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
 
-	body := fmt.Sprintf(`
-	<h2>Reset Password</h2>
-	<p>Klik link di bawah:</p>
-	<a href="%s">Reset Password</a>
-	<p>Link berlaku selama 1 jam.</p> 
-	`, resetLink)
+	data := struct {
+		Name      string
+		ResetLink string
+	}{
+		Name:      name,
+		ResetLink: resetLink,
+	}
 
-	utils.SendEmail(email, "Reset Password", body)
+	body, err := utils.ParseTemplate("templates/emails/reset_password.html", data)
+	if err != nil {
+		log.Println("❌ Gagal render template email:", err)
+		body = "Klik link ini untuk reset password: " + resetLink
+	}
+
+	// 4. Kirim!
+	utils.SendEmail(email, "Reset Password Akun Medifinder", body)
 }
 
 func (s *AuthService) ResetPassword(token, newPassword string) error {
@@ -286,25 +253,34 @@ func (s *AuthService) ResetPassword(token, newPassword string) error {
 	return nil
 }
 
-func (s *AuthService) ChangePassword(email, newPassword string) error {
-	user, err := s.UserRepo.FindByEmail(email)
+func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
+	// 1. Cari user berdasarkan ID (dari JWT), bukan email dari FE
+	user, err := s.UserRepo.GetUserProfile(userID)
 	if err != nil {
 		return fmt.Errorf("user tidak ditemukan")
 	}
 
+	// 2. Wajib: Verifikasi password lama dulu!
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	if err != nil {
+		return fmt.Errorf("password lama salah")
+	}
+
+	// 3. Hash password baru
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("gagal memproses password baru")
 	}
 
+	// 4. Update ke database
 	err = s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
 	if err != nil {
 		return fmt.Errorf("gagal menyimpan password ke database")
 	}
 
-	log.Println("✅ Password berhasil diganti untuk email:", email)
+	log.Println("✅ Password berhasil diganti untuk user ID:", user.ID)
 
-	s.sendPasswordChangedEmail(email)
+	s.sendPasswordChangedEmail(user.Email)
 
 	return nil
 }
@@ -316,6 +292,8 @@ func (s *AuthService) sendPasswordChangedEmail(email string) {
 	`
 	utils.SendEmail(email, "Password Berhasil Diubah", body)
 }
+
+// +++++++++++++++++ ADMIN REGISTRATION SERVICE BELOW +++++++++++++++++
 
 func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
@@ -346,7 +324,20 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 		return err
 	}
 
-	emailBody := "Pendaftaran Admin Apotek Anda berhasil diajukan. Mohon tunggu verifikasi dari Super Admin maksimal 2x24 jam."
+	data := struct {
+		Name       string
+		NamaApotek string
+	}{
+		Name:       req.Name,
+		NamaApotek: req.NamaApotek,
+	}
+
+	emailBody, err := utils.ParseTemplate("templates/emails/admin_registration.html", data)
+	if err != nil {
+		log.Println("❌ Error template admin_registration:", err)
+		emailBody = "Pendaftaran Admin Apotek Anda berhasil diajukan. Mohon tunggu verifikasi 2x24 jam."
+	}
+
 	utils.SendEmail(req.Email, "Pendaftaran Admin Medifinder Diterima", emailBody)
 
 	return nil

@@ -1,9 +1,11 @@
 package utils
 
 import (
+	"bytes"
+	"html/template"
 	"log"
 	"os"
-	"strconv" // tambahkan package ini
+	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
@@ -33,4 +35,18 @@ func SendEmail(to, subject, body string) {
 			log.Println("Email gagal dikirim:", err)
 		}
 	}()
+}
+
+func ParseTemplate(templateFileName string, data interface{}) (string, error) {
+	t, err := template.ParseFiles(templateFileName)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, data); err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }

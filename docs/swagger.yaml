@@ -79,6 +79,19 @@ definitions:
     required:
     - status
     type: object
+  dto.ChangePasswordRequest:
+    properties:
+      new_password:
+        example: passwordBaru123
+        minLength: 6
+        type: string
+      old_password:
+        example: passwordLama123
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
   dto.ErrorResponse:
     properties:
       message:
@@ -87,6 +100,14 @@ definitions:
       success:
         example: false
         type: boolean
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      email:
+        example: admin.apotek@gmail.com
+        type: string
+    required:
+    - email
     type: object
   dto.GoogleLoginRequest:
     properties:
@@ -205,13 +226,26 @@ definitions:
       transaksi_id:
         type: integer
     type: object
+  dto.ResetPasswordRequest:
+    properties:
+      new_password:
+        example: passwordBaru123
+        minLength: 6
+        type: string
+      token:
+        example: abc-123-xyz-token
+        type: string
+    required:
+    - new_password
+    - token
+    type: object
   dto.UpdateApotekRequest:
     properties:
       alamat:
         example: Jl. Merdeka No. 45
         type: string
       deskripsi:
-        example: Apotek buka setiap hari dengan apoteker yang ramah.
+        example: Apotek buka setiap hari.
         type: string
       jam_buka:
         example: "08:00:00"
@@ -700,6 +734,70 @@ paths:
       summary: Update jumlah item di keranjang
       tags:
       - Keranjang
+  /change-password:
+    post:
+      consumes:
+      - application/json
+      description: Mengganti password admin yang sedang aktif (harus tahu password
+        lama)
+      parameters:
+      - description: Password Lama dan Password Baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - Bearer: []
+      summary: Ganti Password (Login Required)
+      tags:
+      - Auth
+  /forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Mengirimkan link/token ke email admin untuk melakukan reset password
+      parameters:
+      - description: Email Admin
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Request Reset Password
+      tags:
+      - Auth
   /google-login:
     post:
       consumes:
@@ -869,6 +967,34 @@ paths:
       summary: Upload resep dokter
       tags:
       - Resep
+  /reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Membuat password baru menggunakan token yang dikirimkan via email
+      parameters:
+      - description: Token dari Email & Password Baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset Password via Token
+      tags:
+      - Auth
   /superadmin/admin:
     get:
       responses: {}

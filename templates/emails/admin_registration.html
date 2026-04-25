@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .logo {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #14b8a6;
+        margin-bottom: 30px;
+        letter-spacing: -0.5px;
+      }
+      .content {
+        color: #374151;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .info-box {
+        background-color: #f0fdfa;
+        border: 1px solid #ccfbf1;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 25px 0;
+      }
+      .badge {
+        display: inline-block;
+        background-color: #fef08a;
+        color: #854d0e;
+        padding: 4px 12px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #9ca3af;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">medifinder</div>
+      <div class="content">
+        <h2 style="color: #111827; margin-top: 0; text-align: center">
+          Pendaftaran Diterima
+        </h2>
+        <p>Halo, <strong>{{.Name}}</strong>,</p>
+        <p>
+          Terima kasih telah mendaftarkan
+          <strong>{{.NamaApotek}}</strong> sebagai mitra di Medifinder.
+        </p>
+
+        <div class="info-box">
+          <div class="badge">Menunggu Verifikasi</div>
+          <p style="margin-bottom: 0; margin-top: 10px">
+            Permohonan Anda sedang ditinjau oleh Super Admin kami. Proses ini
+            biasanya memakan waktu maksimal <strong>2x24 jam</strong>.
+          </p>
+        </div>
+
+        <p>
+          Kami akan mengirimkan email lanjutan beserta instruksi berikutnya
+          setelah akun Anda disetujui. Mohon bersabar ya!
+        </p>
+      </div>
+
+      <div class="footer">
+        <p>&copy; 2026 Medifinder. Semua Hak Dilindungi.</p>
+      </div>
+    </div>
+  </body>
+</html>
