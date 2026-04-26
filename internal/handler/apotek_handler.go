@@ -42,7 +42,7 @@ type CreateApotekRequest struct {
 // @Router       /admin/apotek [post]
 // @Security     Bearer
 func (h *ApotekHandler) Create(c *gin.Context) {
-	// 1. Ambil data teks dari form
+
 	nama := c.PostForm("nama")
 	alamat := c.PostForm("alamat")
 	lat, _ := strconv.ParseFloat(c.PostForm("latitude"), 64)
@@ -64,7 +64,6 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 		}
 	}
 
-	// 3. Panggil Service
 	err = h.Service.Create(adminID, nama, alamat, lat, lng, jamBuka, jamTutup, photo_url)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -212,7 +211,6 @@ func (h *ApotekHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	// Balikin lgsg apotek-nya buat ngetes
 	c.JSON(200, gin.H{
 		"message": "Mantap dapet",
 		"data":    apotek,

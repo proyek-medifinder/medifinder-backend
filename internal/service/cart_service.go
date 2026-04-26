@@ -287,12 +287,11 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 		},
 	}
 
-	resp, err := snapClient.CreateTransaction(req)
-	if err != nil {
-		return "", "", "", err
+	resp, midtransErr := snapClient.CreateTransaction(req)
+	if midtransErr != nil {
+		return "", "", "", midtransErr
 	}
 
-	// update token di luar tx
 	_, err = s.CartRepo.DB.Exec(`
 		UPDATE transaksi
 		SET snap_token = $1, payment_url = $2
@@ -304,4 +303,5 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	return transaksiID.String(), resp.Token, resp.RedirectURL, nil
+
 }

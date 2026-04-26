@@ -45,6 +45,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	cartRepo := &repository.CartRepository{DB: db}
 	transaksiRepo := &repository.TransaksiRepository{DB: db}
 	resepRepo := &repository.ResepRepository{DB: db}
+	artikelRepo := &repository.ArtikelRepository{DB: db}
 
 	// ================= SERVICE =================
 	authService := &service.AuthService{UserRepo: userRepo}
@@ -69,6 +70,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	superAdminService := &service.SuperAdminService{
 		UserRepo: userRepo,
 	}
+	artikelService := &service.ArtikelService{Repo: artikelRepo}
 
 	// ================= HANDLER =================
 	authHandler := &handler.AuthHandler{Service: authService}
@@ -83,6 +85,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	superAdminHandler := &handler.SuperAdminHandler{
 		Service: superAdminService,
 	}
+	artikelHandler := &handler.ArtikelHandler{Service: artikelService}
 
 	// ================= BACKGROUND JOB =================
 	go func() {
@@ -98,6 +101,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
+	r.GET("/artikel", artikelHandler.GetArticles)
 	r.POST("/register", authHandler.Register)
 	r.POST("/register-admin", authHandler.RegisterAdmin)
 	r.POST("/login", authHandler.Login)
@@ -151,6 +155,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		// ++++++++++ RESEP +++++++++++
 		adminGroup.PUT("/resep/:id", resepHandler.UpdateStatus)
 		adminGroup.GET("/resep", resepHandler.List)
+		// ++++++++++ ARTIKEL +++++++++++
 	}
 
 	// ================= SUPER ADMIN =================
@@ -169,6 +174,10 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		// +++++++++ VERIFIKASI ADMIN +++++++++++
 		superAdminGroup.GET("/pengajuan", superAdminHandler.GetPendingAdmins)
 		superAdminGroup.POST("/verifikasi", superAdminHandler.VerifyAdmin)
+		// ++++++++++ ARTIKEL +++++++++++
+		superAdminGroup.POST("/artikel", artikelHandler.CreateManual)
+		superAdminGroup.DELETE("/artikel/:id", artikelHandler.Delete)
+		superAdminGroup.POST("/artikel/fetch", artikelHandler.TriggerFetchNews)
 	}
 
 	// ================= AUTH PROTECTED (SEMUA ROLE) =================

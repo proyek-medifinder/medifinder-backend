@@ -254,33 +254,32 @@ func (s *AuthService) ResetPassword(token, newPassword string) error {
 }
 
 func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
-	// 1. Cari user berdasarkan ID (dari JWT), bukan email dari FE
-	user, err := s.UserRepo.GetUserProfile(userID)
+
+
+	email, currentHash, err := s.UserRepo.GetAuthDataByID(userID)
 	if err != nil {
 		return fmt.Errorf("user tidak ditemukan")
 	}
 
-	// 2. Wajib: Verifikasi password lama dulu!
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPassword))
+	err = bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(oldPassword))
 	if err != nil {
 		return fmt.Errorf("password lama salah")
 	}
 
-	// 3. Hash password baru
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("gagal memproses password baru")
 	}
 
-	// 4. Update ke database
-	err = s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
+	err = s.UserRepo.UpdatePassword(userID, string(hashedPassword))
 	if err != nil {
 		return fmt.Errorf("gagal menyimpan password ke database")
 	}
 
-	log.Println("✅ Password berhasil diganti untuk user ID:", user.ID)
+	log.Println("✅ Password berhasil diganti untuk user ID:", userID)
 
-	s.sendPasswordChangedEmail(user.Email)
+	// 5. Kirim notifikasi pake email yang ditarik tadi
+	s.sendPasswordChangedEmail(email)
 
 	return nil
 }
@@ -308,6 +307,18 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 		Status:   "pending",
 	}
 
+	// [BARU] Karena di database Deskripsi & PhotoURL boleh kosong (pointer *string)
+	// Kita bikin logic pengecekannya dulu
+	var deskripsiPtr *string
+	if req.Deskripsi != "" {
+		deskripsiPtr = &req.Deskripsi
+	}
+
+	var photoPtr *string
+	if req.PhotoURL != "" {
+		photoPtr = &req.PhotoURL
+	}
+
 	app := &domain.AdminApplication{
 		ID:          uuid.New(),
 		UserID:      userID,
@@ -316,6 +327,8 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 		Latitude:    req.Latitude,
 		Longitude:   req.Longitude,
 		PhoneNumber: req.PhoneNumber,
+		Deskripsi:   deskripsiPtr, // [BARU] Masukkan ke sini
+		PhotoURL:    photoPtr,     // [BARU] Masukkan ke sini
 		Status:      "PENDING",
 	}
 

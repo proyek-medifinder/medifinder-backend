@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .logo {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #14b8a6;
+        margin-bottom: 30px;
+        letter-spacing: -0.5px;
+      }
+      .content {
+        color: #374151;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .success-box {
+        background-color: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 25px 0;
+        text-align: center;
+      }
+      .badge {
+        display: inline-block;
+        background-color: #22c55e;
+        color: #ffffff;
+        padding: 6px 16px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 15px;
+      }
+      .btn {
+        display: inline-block;
+        background-color: #14b8a6;
+        color: #ffffff;
+        text-decoration: none;
+        padding: 14px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        transition: background-color 0.3s;
+        margin-top: 15px;
+      }
+      .btn:hover {
+        background-color: #0d9488;
+      }
+      .footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #9ca3af;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">MediFinder</div>
+      <div class="content">
+        <h2 style="color: #111827; margin-top: 0; text-align: center">
+          Selamat Bergabung! 🎉
+        </h2>
+        <p>Halo, <strong>{{.Name}}</strong>,</p>
+        <p>
+          Kabar gembira! Permohonan pendaftaran apotek Anda telah kami tinjau
+          dan <strong>disetujui</strong>.
+        </p>
+
+        <div class="success-box">
+          <div class="badge">Apotek Terverifikasi</div>
+          <p style="margin-bottom: 0; margin-top: 10px">
+            <strong>{{.NamaApotek}}</strong> sekarang sudah resmi menjadi mitra
+            Medifinder.
+          </p>
+        </div>
+
+        <p>
+          Anda sekarang dapat login ke dashboard admin untuk mulai mengelola
+          stok obat, menerima pesanan, dan mengatur profil apotek Anda.
+        </p>
+
+        <div style="text-align: center">
+          <a href="{{.LoginLink}}" class="btn">Masuk ke Dashboard</a>
+        </div>
+      </div>
+
+      <div class="footer">
+        <p>&copy; 2026 Medifinder. Semua Hak Dilindungi.</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -628,6 +628,51 @@
                 }
             }
         },
+        "/artikel": {
+            "get": {
+                "description": "Mengambil daftar artikel kesehatan yang berstatus PUBLISHED (bisa dari Super Admin atau NewsAPI)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Artikel"
+                ],
+                "summary": "Daftar Artikel Kesehatan",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Nomor halaman (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Jumlah data per halaman (default: 10)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Berisi array of artikel",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/cart": {
             "get": {
                 "security": [
@@ -1359,6 +1404,174 @@
                 }
             }
         },
+        "/superadmin/artikel": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat artikel kesehatan baru secara manual. Mendukung upload gambar thumbnail.",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Artikel"
+                ],
+                "summary": "Buat Artikel Manual",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Judul Artikel",
+                        "name": "judul",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Isi konten artikel",
+                        "name": "konten",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Kategori artikel",
+                        "name": "kategori",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status (DRAFT / PUBLISHED)",
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File gambar thumbnail artikel (opsional)",
+                        "name": "thumbnail",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Input tidak valid",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/artikel/fetch": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menjalankan fungsi background untuk menarik artikel kesehatan terbaru dari NewsAPI",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Artikel"
+                ],
+                "summary": "Fetch Artikel NewsAPI",
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses trigger berjalan",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/artikel/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus artikel berdasarkan ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Artikel"
+                ],
+                "summary": "Hapus Artikel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Artikel",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/superadmin/pengajuan": {
             "get": {
                 "security": [
@@ -1839,6 +2052,9 @@
                     "minLength": 6
                 },
                 "phone_number": {
+                    "type": "string"
+                },
+                "photo_url": {
                     "type": "string"
                 }
             }

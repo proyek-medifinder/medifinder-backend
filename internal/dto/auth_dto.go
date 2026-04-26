@@ -46,4 +46,5 @@ type RegisterAdminRequest struct {
 	Longitude   float64 `json:"longitude" binding:"required"`
 	PhoneNumber string  `json:"phone_number" binding:"required"`
 	Deskripsi   string  `json:"deskripsi"`
+	PhotoURL    string  `json:"photo_url"`
 }

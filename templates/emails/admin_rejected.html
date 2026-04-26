@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      }
+      .logo {
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        color: #14b8a6;
+        margin-bottom: 30px;
+      }
+      .content {
+        color: #374151;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .reason-box {
+        background-color: #fff1f2;
+        border: 1px solid #fecdd3;
+        padding: 20px;
+        border-radius: 8px;
+        margin: 25px 0;
+      }
+      .footer {
+        margin-top: 40px;
+        font-size: 14px;
+        color: #9ca3af;
+        text-align: center;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">medifinder</div>
+      <div class="content">
+        <h2 style="color: #111827; margin-top: 0; text-align: center">
+          Update Status Pendaftaran
+        </h2>
+        <p>Halo, <strong>{{.Name}}</strong>,</p>
+        <p>
+          Terima kasih telah menunggu. Kami telah meninjau pengajuan pendaftaran
+          untuk <strong>{{.NamaApotek}}</strong>.
+        </p>
+
+        <p>
+          Mohon maaf, saat ini kami
+          <strong>belum bisa menyetujui</strong> pendaftaran Anda karena alasan
+          berikut:
+        </p>
+
+        <div class="reason-box">
+          <p style="margin: 0; color: #991b1b">
+            <strong>Alasan:</strong> {{.Reason}}
+          </p>
+        </div>
+
+        <p>
+          Silakan lakukan pendaftaran ulang dengan data yang lebih lengkap atau
+          sesuai dengan ketentuan kami.
+        </p>
+      </div>
+      <div class="footer">
+        <p>&copy; 2026 Medifinder. Semua Hak Dilindungi.</p>
+      </div>
+    </div>
+  </body>
+</html>

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
+	"github.com/sasaefulanwar/medifinder/internal/dto"
 )
 
 const RoleAdminUUID = "22222222-2222-2222-2222-222222222222"
@@ -139,20 +140,29 @@ func (r *UserRepository) UpdatePassword(id uuid.UUID, newPassword string) error 
 }
 
 // ================ FITUR VERIFIKASI ADMIN OLEH SUPERADMIN =================
-func (r *UserRepository) FindPendingAdmins(limit, offset int) ([]domain.User, int, error) {
-	var list []domain.User
+func (r *UserRepository) FindPendingAdmins(limit, offset int) ([]dto.PendingAdminResponse, int, error) {
+	var list []dto.PendingAdminResponse
 	var total int
 
-	err := r.DB.Get(&total, `SELECT COUNT(*) FROM users WHERE role_id = $1 AND status = 'pending' AND deleted_at IS NULL`, RoleAdminUUID)
+	err := r.DB.Get(&total, `
+		SELECT COUNT(*) 
+		FROM users u
+		JOIN admin_applications a ON u.id = a.user_id
+		WHERE u.role_id = $1 AND u.status = 'pending' AND u.deleted_at IS NULL
+	`, RoleAdminUUID)
 	if err != nil {
 		return nil, 0, err
 	}
 
+	// [UBAH] Lakukan JOIN dan pilih kolom-kolom yang ada di struct PendingAdminResponse
 	err = r.DB.Select(&list, `
-		SELECT id, name, email, role_id, status, created_at
-		FROM users
-		WHERE role_id = $1 AND status = 'pending' AND deleted_at IS NULL
-		ORDER BY created_at ASC
+		SELECT 
+			u.id AS user_id, u.name, u.email, u.role_id, u.status, u.created_at,
+			a.id AS app_id, a.nama_apotek, a.alamat, a.latitude, a.longitude, a.phone_number, a.deskripsi, a.photo_url
+		FROM users u
+		JOIN admin_applications a ON u.id = a.user_id
+		WHERE u.role_id = $1 AND u.status = 'pending' AND u.deleted_at IS NULL
+		ORDER BY u.created_at ASC
 		LIMIT $2 OFFSET $3
 	`, RoleAdminUUID, limit, offset)
 
@@ -241,13 +251,13 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 	var rejectionReason *string
 
 	if action == "approved" {
-		userStatus = "active" 
+		userStatus = "active"
 		appStatus = "APPROVED"
 
 		_, err = tx.Exec(`
-			INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, verification_status, created_at)
+			INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, photo_url, verification_status, created_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'APPROVED', CURRENT_TIMESTAMP)
-		`, uuid.New(), adminID, app.NamaApotek, app.Alamat, app.Latitude, app.Longitude, app.PhoneNumber, app.Deskripsi)
+		`, uuid.New(), adminID, app.NamaApotek, app.Alamat, app.Latitude, app.Longitude, app.PhoneNumber, app.Deskripsi, app.PhotoURL)
 
 		if err != nil {
 			return err
@@ -279,4 +289,30 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 	}
 
 	return tx.Commit()
+}
+
+func (r *UserRepository) GetAdminApplicationByUserID(userID uuid.UUID) (*domain.AdminApplication, error) {
+	var app domain.AdminApplication
+	query := `
+		SELECT id, user_id, nama_apotek, alamat, latitude, longitude, phone_number, deskripsi, status, submitted_at
+		FROM admin_applications 
+		WHERE user_id = $1 
+		ORDER BY submitted_at DESC 
+		LIMIT 1
+	`
+	err := r.DB.Get(&app, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	return &app, nil
+}
+
+func (r *UserRepository) GetAuthDataByID(userID uuid.UUID) (string, string, error) {
+	var user struct {
+		Email    string `db:"email"`
+		Password string `db:"password"`
+	}
+	// Asumsi lu pake sqlx
+	err := r.DB.Get(&user, "SELECT email, password FROM users WHERE id = $1", userID)
+	return user.Email, user.Password, err
 }

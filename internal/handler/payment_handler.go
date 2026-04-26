@@ -61,9 +61,7 @@ func (h *PaymentHandler) Notification(c *gin.Context) {
 		return
 	}
 
-	fmt.Printf("📦 WEBHOOK DARI MIDTRANS: %+v\n", req)
 
-	// validasi field wajib
 	if req.OrderID == "" || req.SignatureKey == "" {
 		fmt.Println("❌ missing required fields")
 		c.JSON(200, gin.H{"message": "ignored"})
