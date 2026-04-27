@@ -679,6 +679,42 @@ const docTemplate = `{
                 }
             }
         },
+        "/artikel/{slug}": {
+            "get": {
+                "description": "Mengambil data lengkap satu artikel berdasarkan slug",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Artikel"
+                ],
+                "summary": "Detail Artikel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slug Artikel",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Artikel"
+                        }
+                    },
+                    "404": {
+                        "description": "Artikel tidak ditemukan",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/cart": {
             "get": {
                 "security": [
@@ -998,6 +1034,55 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/kontak": {
+            "post": {
+                "description": "Memungkinkan user atau guest untuk mengirimkan pesan/pertanyaan ke sistem",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Kontak"
+                ],
+                "summary": "Kirim Pesan Kontak",
+                "parameters": [
+                    {
+                        "description": "Data Pesan",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.CreateKontakRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Input tidak valid",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1410,6 +1495,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/superadmin/apotek": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil semua daftar apotek yang terdaftar di sistem untuk kebutuhan monitoring",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Apotek"
+                ],
+                "summary": "Daftar Semua Apotek (Super Admin)",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Halaman",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Limit data",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/superadmin/artikel": {
             "post": {
                 "security": [
@@ -1530,6 +1669,97 @@ const docTemplate = `{
             }
         },
         "/superadmin/artikel/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Memperbarui data artikel yang sudah ada (Judul, Konten, Kategori, Status, atau Thumbnail)",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Artikel"
+                ],
+                "summary": "Update Artikel",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Artikel",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Judul Baru",
+                        "name": "judul",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Konten Baru",
+                        "name": "konten",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Kategori Baru",
+                        "name": "kategori",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Status (DRAFT / PUBLISHED)",
+                        "name": "status",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "Gambar thumbnail baru (opsional)",
+                        "name": "thumbnail",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Input tidak valid",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "delete": {
                 "security": [
                     {
@@ -1556,6 +1786,128 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/kontak": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengambil daftar pesan masuk dari user (Khusus Super Admin)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Kontak"
+                ],
+                "summary": "Lihat Semua Pesan Kontak",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Nomor halaman",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Jumlah data per halaman",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Berisi daftar pesan",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/superadmin/kontak/{id}": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengubah status pesan (misal: UNREAD jadi RESOLVED)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "SuperAdmin Kontak"
+                ],
+                "summary": "Update Status Pesan",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ID Pesan Kontak",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Status Baru",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateKontakStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Pesan sukses",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Input tidak valid",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1765,6 +2117,44 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "domain.Artikel": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image_url": {
+                    "type": "string"
+                },
+                "judul": {
+                    "type": "string"
+                },
+                "kategori": {
+                    "type": "string"
+                },
+                "konten": {
+                    "type": "string"
+                },
+                "slug": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "superadmin_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.APIResponse": {
             "type": "object",
             "properties": {
@@ -1898,6 +2288,29 @@ const docTemplate = `{
                 "old_password": {
                     "type": "string",
                     "example": "passwordLama123"
+                }
+            }
+        },
+        "dto.CreateKontakRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "nama",
+                "pesan",
+                "subjek"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "nama": {
+                    "type": "string"
+                },
+                "pesan": {
+                    "type": "string"
+                },
+                "subjek": {
+                    "type": "string"
                 }
             }
         },
@@ -2164,6 +2577,22 @@ const docTemplate = `{
                 "jumlah": {
                     "type": "integer",
                     "example": 3
+                }
+            }
+        },
+        "dto.UpdateKontakStatusRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "UNREAD",
+                        "READ",
+                        "RESOLVED"
+                    ]
                 }
             }
         },

@@ -1,5 +1,30 @@
 basePath: /api/v1
 definitions:
+  domain.Artikel:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      image_url:
+        type: string
+      judul:
+        type: string
+      kategori:
+        type: string
+      konten:
+        type: string
+      slug:
+        type: string
+      source:
+        type: string
+      status:
+        type: string
+      superadmin_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
   dto.APIResponse:
     properties:
       data: {}
@@ -92,6 +117,22 @@ definitions:
     required:
     - new_password
     - old_password
+    type: object
+  dto.CreateKontakRequest:
+    properties:
+      email:
+        type: string
+      nama:
+        type: string
+      pesan:
+        type: string
+      subjek:
+        type: string
+    required:
+    - email
+    - nama
+    - pesan
+    - subjek
     type: object
   dto.ErrorResponse:
     properties:
@@ -277,6 +318,17 @@ definitions:
       jumlah:
         example: 3
         type: integer
+    type: object
+  dto.UpdateKontakStatusRequest:
+    properties:
+      status:
+        enum:
+        - UNREAD
+        - READ
+        - RESOLVED
+        type: string
+    required:
+    - status
     type: object
   dto.UpdateResepStatusRequest:
     properties:
@@ -741,6 +793,30 @@ paths:
       summary: Daftar Artikel Kesehatan
       tags:
       - Artikel
+  /artikel/{slug}:
+    get:
+      description: Mengambil data lengkap satu artikel berdasarkan slug
+      parameters:
+      - description: Slug Artikel
+        in: path
+        name: slug
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Artikel'
+        "404":
+          description: Artikel tidak ditemukan
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Detail Artikel
+      tags:
+      - Artikel
   /cart:
     get:
       description: Mengambil semua daftar obat yang ada di keranjang user saat ini
@@ -953,6 +1029,40 @@ paths:
       summary: Login via Google
       tags:
       - Auth
+  /kontak:
+    post:
+      consumes:
+      - application/json
+      description: Memungkinkan user atau guest untuk mengirimkan pesan/pertanyaan
+        ke sistem
+      parameters:
+      - description: Data Pesan
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateKontakRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pesan sukses
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Input tidak valid
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Kirim Pesan Kontak
+      tags:
+      - Kontak
   /login:
     post:
       consumes:
@@ -1214,6 +1324,42 @@ paths:
       summary: Ubah status admin apotek (Suspend / Activate)
       tags:
       - SuperAdmin
+  /superadmin/apotek:
+    get:
+      description: Mengambil semua daftar apotek yang terdaftar di sistem untuk kebutuhan
+        monitoring
+      parameters:
+      - description: Halaman
+        in: query
+        name: page
+        type: integer
+      - description: Limit data
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Daftar Semua Apotek (Super Admin)
+      tags:
+      - SuperAdmin Apotek
   /superadmin/artikel:
     post:
       consumes:
@@ -1305,6 +1451,69 @@ paths:
       summary: Hapus Artikel
       tags:
       - SuperAdmin Artikel
+    put:
+      consumes:
+      - multipart/form-data
+      description: Memperbarui data artikel yang sudah ada (Judul, Konten, Kategori,
+        Status, atau Thumbnail)
+      parameters:
+      - description: ID Artikel
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Judul Baru
+        in: formData
+        name: judul
+        required: true
+        type: string
+      - description: Konten Baru
+        in: formData
+        name: konten
+        required: true
+        type: string
+      - description: Kategori Baru
+        in: formData
+        name: kategori
+        required: true
+        type: string
+      - description: Status (DRAFT / PUBLISHED)
+        in: formData
+        name: status
+        required: true
+        type: string
+      - description: Gambar thumbnail baru (opsional)
+        in: formData
+        name: thumbnail
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pesan sukses
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Input tidak valid
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Artikel
+      tags:
+      - SuperAdmin Artikel
   /superadmin/artikel/fetch:
     post:
       description: Menjalankan fungsi background untuk menarik artikel kesehatan terbaru
@@ -1327,6 +1536,86 @@ paths:
       summary: Fetch Artikel NewsAPI
       tags:
       - SuperAdmin Artikel
+  /superadmin/kontak:
+    get:
+      description: Mengambil daftar pesan masuk dari user (Khusus Super Admin)
+      parameters:
+      - description: Nomor halaman
+        in: query
+        name: page
+        type: integer
+      - description: Jumlah data per halaman
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Berisi daftar pesan
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Lihat Semua Pesan Kontak
+      tags:
+      - SuperAdmin Kontak
+  /superadmin/kontak/{id}:
+    put:
+      consumes:
+      - application/json
+      description: 'Mengubah status pesan (misal: UNREAD jadi RESOLVED)'
+      parameters:
+      - description: ID Pesan Kontak
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Status Baru
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateKontakStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pesan sukses
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Input tidak valid
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Status Pesan
+      tags:
+      - SuperAdmin Kontak
   /superadmin/pengajuan:
     get:
       parameters:

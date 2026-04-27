@@ -56,3 +56,14 @@ func (r *ArtikelRepository) Delete(id string) error {
 	_, err := r.DB.Exec(query, id)
 	return err
 }
+
+func (r *ArtikelRepository) FindBySlug(slug string) (*domain.Artikel, error) {
+	var artikel domain.Artikel
+	query := `
+		SELECT id, judul, slug, konten, kategori, image_url, source, created_at 
+		FROM artikel 
+		WHERE slug = $1 AND status = 'PUBLISHED'
+	`
+	err := r.DB.Get(&artikel, query, slug)
+	return &artikel, err
+}

@@ -46,6 +46,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	transaksiRepo := &repository.TransaksiRepository{DB: db}
 	resepRepo := &repository.ResepRepository{DB: db}
 	artikelRepo := &repository.ArtikelRepository{DB: db}
+	kontakRepo := &repository.KontakRepository{DB: db}
 
 	// ================= SERVICE =================
 	authService := &service.AuthService{UserRepo: userRepo}
@@ -71,6 +72,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		UserRepo: userRepo,
 	}
 	artikelService := &service.ArtikelService{Repo: artikelRepo}
+	kontakService := &service.KontakService{Repo: kontakRepo}
 
 	// ================= HANDLER =================
 	authHandler := &handler.AuthHandler{Service: authService}
@@ -86,6 +88,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		Service: superAdminService,
 	}
 	artikelHandler := &handler.ArtikelHandler{Service: artikelService}
+	kontakHandler := &handler.KontakHandler{Service: kontakService}
 
 	// ================= BACKGROUND JOB =================
 	go func() {
@@ -101,7 +104,9 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
+	r.POST("/kontak", kontakHandler.SubmitMessage)
 	r.GET("/artikel", artikelHandler.GetArticles)
+	r.GET("/artikel/:slug", artikelHandler.GetDetail)
 	r.POST("/register", authHandler.Register)
 	r.POST("/register-admin", authHandler.RegisterAdmin)
 	r.POST("/login", authHandler.Login)
@@ -163,6 +168,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	superAdminGroup.Use(middleware.AuthMiddleware())
 	superAdminGroup.Use(middleware.Authorize("super_admin"))
 	{
+		// ++++++++++ APOTEK +++++++++++
+		superAdminGroup.GET("/apotek", apotekHandler.SuperAdminIndex)
 		// ++++++++++ TRANSAKSI +++++++++++
 		superAdminGroup.GET("/transaksi", transaksiHandler.SuperAdminHistory)
 		// ++++++++++ ADMIN MANAGEMENT +++++++++++
@@ -178,6 +185,10 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		superAdminGroup.POST("/artikel", artikelHandler.CreateManual)
 		superAdminGroup.DELETE("/artikel/:id", artikelHandler.Delete)
 		superAdminGroup.POST("/artikel/fetch", artikelHandler.TriggerFetchNews)
+		superAdminGroup.PUT("/artikel/:id", artikelHandler.Update)
+		// ++++++++++ KONTAK +++++++++++
+		superAdminGroup.GET("/kontak", kontakHandler.GetMessages)
+		superAdminGroup.PUT("/kontak/:id", kontakHandler.UpdateStatus)
 	}
 
 	// ================= AUTH PROTECTED (SEMUA ROLE) =================

@@ -188,3 +188,24 @@ func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 
 	return apotek, nil
 }
+
+func (r *ApotekRepository) FindAllWithCount(limit, offset int) ([]domain.Apotek, int, error) {
+	var list []domain.Apotek
+	var total int
+
+	// 1. Hitung total semua apotek
+	err := r.DB.Get(&total, "SELECT COUNT(*) FROM apotek")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	query := `
+		SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, photo_url, verification_status, created_at 
+		FROM apotek 
+		ORDER BY created_at DESC 
+		LIMIT $1 OFFSET $2
+	`
+	err = r.DB.Select(&list, query, limit, offset)
+
+	return list, total, err
+}

@@ -110,3 +110,8 @@ func (s *ApotekService) UpdateImage(adminID string, photo_url string) error {
 	// Pake fungsi Update bawaan repo lu yang udah ada
 	return s.Repo.Update(apotek)
 }
+
+func (s *ApotekService) GetAllForSuperAdmin(page, limit int) ([]domain.Apotek, int, error) {
+	offset := (page - 1) * limit
+	return s.Repo.FindAllWithCount(limit, offset)
+}
