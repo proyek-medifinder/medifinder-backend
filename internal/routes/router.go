@@ -30,7 +30,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 			"http://127.0.0.1:3000",
 			"http://localhost:5173",
 			"https://nonregressive-kyoko-supercelestially.ngrok-free.dev",
-			"https://medifinder-backend-production.up.railway.app"
+			"https://medifinder-backend-production.up.railway.app",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "ngrok-skip-browser-warning"},
