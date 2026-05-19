@@ -38,7 +38,7 @@ func (r *UserRepository) Create(user *domain.User) error {
 func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
 	var user domain.User
 	query := `
-	SELECT id, name, email, password, role_id, status 
+	SELECT id, name, email, password, role_id, status, google_id 
 	FROM users 
 	WHERE LOWER(email)=LOWER($1) AND deleted_at IS NULL
 	`
