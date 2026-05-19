@@ -128,6 +128,15 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 			return nil, err
 		}
 		user = newUser
+
+	} else {
+		if user.GoogleID == nil || *user.GoogleID == "" {
+			errUpdate := s.UserRepo.UpdateGoogleID(user.ID, googleID)
+			if errUpdate != nil {
+				log.Println("Gagal update Google ID:", errUpdate)
+			}
+			user.GoogleID = &googleID
+		}
 	}
 
 	if user.Status == "pending" {
