@@ -256,7 +256,7 @@ func (r *UserRepository) ProcessAdminVerificationTx(adminID, superAdminID uuid.U
 
 		_, err = tx.Exec(`
 			INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, photo_url, verification_status, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'APPROVED', CURRENT_TIMESTAMP)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'APPROVED', CURRENT_TIMESTAMP)
 		`, uuid.New(), adminID, app.NamaApotek, app.Alamat, app.Latitude, app.Longitude, app.PhoneNumber, app.Deskripsi, app.PhotoURL)
 
 		if err != nil {
@@ -315,4 +315,11 @@ func (r *UserRepository) GetAuthDataByID(userID uuid.UUID) (string, string, erro
 	// Asumsi lu pake sqlx
 	err := r.DB.Get(&user, "SELECT email, password FROM users WHERE id = $1", userID)
 	return user.Email, user.Password, err
+}
+
+// ================= FITUR GOOGLE LOGIN =================
+func (r *UserRepository) UpdateGoogleID(userID uuid.UUID, googleID string) error {
+	query := `UPDATE users SET google_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`
+	_, err := r.DB.Exec(query, googleID, userID)
+	return err
 }
