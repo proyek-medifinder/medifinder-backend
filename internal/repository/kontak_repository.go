@@ -35,3 +35,17 @@ func (r *KontakRepository) UpdateStatus(id, status string) error {
 	_, err := r.DB.Exec(query, status, id)
 	return err
 }
+
+func (r *KontakRepository) FindByID(id string) (*domain.Kontak, error) {
+    var kontak domain.Kontak
+    query := `
+        SELECT id, nama, email, subjek, pesan, status, created_at 
+        FROM kontak 
+        WHERE id = $1
+    `
+    err := r.DB.Get(&kontak, query, id)
+    if err != nil {
+        return nil, err
+    }
+    return &kontak, nil
+}

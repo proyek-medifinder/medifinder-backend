@@ -40,3 +40,7 @@ func (s *KontakService) GetMessages(page, limit int) ([]domain.Kontak, error) {
 func (s *KontakService) UpdateStatus(id, status string) error {
 	return s.Repo.UpdateStatus(id, status)
 }
+
+func (s *KontakService) GetDetail(id string) (*domain.Kontak, error) {
+    return s.Repo.FindByID(id)
+}

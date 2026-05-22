@@ -13,5 +13,5 @@ type Kontak struct {
 	Subjek    string    `db:"subjek" json:"subjek"`
 	Pesan     string    `db:"pesan" json:"pesan"`
 	Status    string    `db:"status" json:"status"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	CreatedAt sql.NullTime `db:"created_at" json:"created_at"`
 }

@@ -93,3 +93,24 @@ func (h *KontakHandler) UpdateStatus(c *gin.Context) {
 
 	c.JSON(200, gin.H{"message": "Status pesan berhasil diperbarui"})
 }
+
+
+// Detail godoc
+// @Summary Ambil detail pesan kontak
+// @Description Mengambil detail informasi pesan kontak berdasarkan ID
+// @Tags Kontak
+// @Security BearerAuth
+// @Produce json
+// @Param id path string true "Kontak ID"
+// @Success 200 {object} domain.Kontak
+// @Failure 404 {object} map[string]interface{} "error: Kontak tidak ditemukan"
+// @Router /superadmin/kontak/{id} [get]
+func (h *KontakHandler) Detail(c *gin.Context) {
+    id := c.Param("id")
+    kontak, err := h.Service.GetDetail(id)
+    if err != nil {
+        c.JSON(404, gin.H{"error": "Kontak tidak ditemukan"})
+        return
+    }
+    c.JSON(200, kontak)
+}
