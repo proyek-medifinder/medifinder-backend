@@ -7,5 +7,5 @@ type DetailTransaksi struct {
 	TransaksiID uuid.UUID `db:"transaksi_id" json:"transaksi_id"`
 	ObatID      uuid.UUID `db:"obat_id" json:"obat_id"`
 	Jumlah      int       `db:"jumlah" json:"jumlah"`
-	Harga       int64     `db:"harga" json:"harga"`
+	Harga float64 `db:"harga" json:"harga"`
 }
