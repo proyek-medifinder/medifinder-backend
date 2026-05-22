@@ -26,14 +26,21 @@ type UpdateAdminRequest struct {
 }
 
 type PendingAdminResponse struct {
-	ID          uuid.UUID `db:"id" json:"id"`
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	NamaApotek  string    `db:"nama_apotek" json:"nama_apotek"`
-	Alamat      string    `db:"alamat" json:"alamat"`
-	Latitude    float64   `db:"latitude" json:"latitude"`
-	Longitude   float64   `db:"longitude" json:"longitude"`
-	PhoneNumber string    `db:"phone_number" json:"phone_number"`
-	Deskripsi   *string   `db:"deskripsi" json:"deskripsi,omitempty"`
-	PhotoURL    *string   `db:"photo_url" json:"photo_url,omitempty"`
-	Status      string    `db:"status" json:"status"`
+	// Data User
+	UserID    uuid.UUID `json:"user_id" db:"user_id"`
+	Name      string    `json:"name" db:"name"` // 👈 INI BIANG KEROKNYA, lu pasti lupa nambahin db:"name"
+	Email     string    `json:"email" db:"email"`
+	RoleID    uuid.UUID `json:"role_id" db:"role_id"`
+	Status    string    `json:"status" db:"status"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+
+	// Data Aplikasi Apotek
+	AppID       uuid.UUID `json:"app_id" db:"app_id"`
+	NamaApotek  string    `json:"nama_apotek" db:"nama_apotek"`
+	Alamat      string    `json:"alamat" db:"alamat"`
+	Latitude    float64   `json:"latitude" db:"latitude"`
+	Longitude   float64   `json:"longitude" db:"longitude"`
+	PhoneNumber string    `json:"phone_number" db:"phone_number"`
+	Deskripsi   *string   `json:"deskripsi" db:"deskripsi"`
+	PhotoURL    *string   `json:"photo_url" db:"photo_url"`
 }
