@@ -101,7 +101,6 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	}()
 
 	// ================= PUBLIC =================
-	r.Static("/public", "./public")\
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
 	r.POST("/kontak", kontakHandler.SubmitMessage)
