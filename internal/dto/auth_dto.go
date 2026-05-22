@@ -42,6 +42,8 @@ type RegisterAdminRequest struct {
 	Password    string  `json:"password" binding:"required,min=6"`
 	NamaApotek  string  `json:"nama_apotek" binding:"required"`
 	Alamat      string  `json:"alamat" binding:"required"`
+	JamBuka     *string `db:"jam_buka" json:"jam_buka"`
+	JamTutup    *string `db:"jam_tutup" json:"jam_tutup"`
 	Latitude    float64 `json:"latitude" binding:"required"`
 	Longitude   float64 `json:"longitude" binding:"required"`
 	PhoneNumber string  `json:"phone_number" binding:"required"`
