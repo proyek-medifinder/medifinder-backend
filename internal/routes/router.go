@@ -28,6 +28,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 			"http://127.0.0.1:3000",
 			"http://localhost:5173",
 			"https://nonregressive-kyoko-supercelestially.ngrok-free.dev",
+			"https://medifinder.greendrop.my.id",
 
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
