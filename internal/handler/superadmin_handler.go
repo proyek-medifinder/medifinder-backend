@@ -149,7 +149,7 @@ func (h *SuperAdminHandler) VerifyAdmin(c *gin.Context) {
 		return
 	}
 
-	err := h.Service.VerifyAdmin(req.AdminID, superAdminID, req.Action, req.Notes)
+	err := h.Service.VerifyAdmin(req.AdminID, superAdminID, req.Action, req.Reason)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
