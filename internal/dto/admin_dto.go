@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"time"
 	"github.com/google/uuid"
 )
 
@@ -26,15 +27,13 @@ type UpdateAdminRequest struct {
 }
 
 type PendingAdminResponse struct {
-	// Data User
 	UserID    uuid.UUID `json:"user_id" db:"user_id"`
-	Name      string    `json:"name" db:"name"` // 👈 INI BIANG KEROKNYA, lu pasti lupa nambahin db:"name"
+	Name      string    `json:"name" db:"name"`
 	Email     string    `json:"email" db:"email"`
 	RoleID    uuid.UUID `json:"role_id" db:"role_id"`
 	Status    string    `json:"status" db:"status"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 
-	// Data Aplikasi Apotek
 	AppID       uuid.UUID `json:"app_id" db:"app_id"`
 	NamaApotek  string    `json:"nama_apotek" db:"nama_apotek"`
 	Alamat      string    `json:"alamat" db:"alamat"`
