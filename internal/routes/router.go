@@ -156,6 +156,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		adminGroup.PUT("/apotek", apotekHandler.UpdateMyApotek)
 		// ++++++++++ TRANSAKSI +++++++++++
 		adminGroup.GET("/transaksi", transaksiHandler.AdminHistory)
+		adminGroup.GET("/transaksi/:id", transaksiHandler.Detail)
 		// ++++++++++ RESEP +++++++++++
 		adminGroup.PUT("/resep/:id", resepHandler.UpdateStatus)
 		adminGroup.GET("/resep", resepHandler.List)
@@ -171,6 +172,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		superAdminGroup.GET("/apotek", apotekHandler.SuperAdminIndex)
 		// ++++++++++ TRANSAKSI +++++++++++
 		superAdminGroup.GET("/transaksi", transaksiHandler.SuperAdminHistory)
+		superAdminGroup.GET("/transaksi/:id", transaksiHandler.Detail)
 		// ++++++++++ ADMIN MANAGEMENT +++++++++++
 		superAdminGroup.GET("/admin", superAdminHandler.ListAdmin)
 		superAdminGroup.POST("/admin", superAdminHandler.CreateAdmin)
