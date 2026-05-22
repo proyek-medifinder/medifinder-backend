@@ -45,7 +45,7 @@ func (r *TransaksiRepository) FindByUser(
 
 	// data query yang udah diupdate (Hapus expired_at, tambah token & url)
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total, status, snap_token, payment_url, created_at, updated_at
+	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -133,7 +133,7 @@ func (r *TransaksiRepository) FindByApotekWithCount(
 	}
 
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total, status, snap_token, payment_url, created_at, updated_at
+	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
