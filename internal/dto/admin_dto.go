@@ -6,9 +6,9 @@ import (
 )
 
 type VerifyAdminRequest struct {
-	AdminID string `json:"admin_id" binding:"required" example:"123e4567-e89b-12d3-a456-426614174000"`
-	Action  string `json:"action" binding:"required" example:"approved"`
-	Notes   string `json:"notes" example:"Dokumen lengkap dan valid"`
+    AdminID string `json:"admin_id" binding:"required"`
+    Action  string `json:"action" binding:"required"` // "approved" atau "rejected"
+    Reason  string `json:"reason"` // opsional
 }
 
 type ChangeAdminStatusRequest struct {
