@@ -29,7 +29,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 			"http://localhost:5173",
 			"https://nonregressive-kyoko-supercelestially.ngrok-free.dev",
 			"https://medifinder.greendrop.my.id",
-
+			"https://frontend-medifinder-production.up.railway.app",
+			"https://frontend-medifinder.vercel.app",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "ngrok-skip-browser-warning"},
