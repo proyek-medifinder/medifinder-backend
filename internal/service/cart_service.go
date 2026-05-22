@@ -267,7 +267,7 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	// hapus cart
-	_, err = tx.Exec(`DELETE FROM cart_item WHERE cart_id=$1`, cart.ID)
+	_, err = tx.Exec(`DELETE FROM cart_items WHERE cart_id=$1`, cart.ID)
 	if err != nil {
 		return "", "", "", err
 	}
