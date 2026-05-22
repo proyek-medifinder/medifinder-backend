@@ -249,7 +249,7 @@ func (s *CartService) Checkout(userID string) (string, string, string, error) {
 	}
 
 	_, err = tx.Exec(`
-		INSERT INTO transaksi (id, user_id, apotek_id, total, status)
+		INSERT INTO transaksi (id, user_id, apotek_id, total_harga, status)
 		VALUES ($1, $2, $3, $4, 'pending')
 	`, transaksiID, uuid.MustParse(userID), cart.ApotekID, total)
 	if err != nil {
