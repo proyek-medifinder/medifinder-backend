@@ -47,5 +47,5 @@ type UpdateApotekRequest struct {
 	JamTutup    *string `json:"jam_tutup" example:"22:00:00"`
 	PhoneNumber *string `json:"phone_number" example:"081234567890"`
 	Deskripsi   *string `json:"deskripsi" example:"Apotek buka setiap hari."`
-	PhotoURL    *string `json:"photo_url" example:"https://example.com/photo.jpg"`
+	PhotoURL    *string `json:"photo_url"`
 }

@@ -103,17 +103,12 @@ func (s *ApotekService) GetByID(id string) (domain.Apotek, error) {
 }
 
 func (s *ApotekService) UpdateImage(adminID string, photo_url string) error {
-	// Cari apotek milik admin ini
 	apotek, err := s.Repo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
-		return errors.New("apotek tidak ditemukan untuk admin ini")
+		return err
 	}
-
-	// Set URL gambar barunya (karena di domain pake *string, kita reference variabelnya)
 	apotek.PhotoURL = &photo_url
-
-	// Pake fungsi Update bawaan repo lu yang udah ada
-	return s.Repo.Update(apotek)
+	return s.Repo.Update(apotek) // Pastikan fungsi Update di repo beneran nge-update kolom photo_url
 }
 
 func (s *ApotekService) GetAllForSuperAdmin(page, limit int) ([]domain.Apotek, int, error) {

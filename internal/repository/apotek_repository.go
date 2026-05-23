@@ -13,13 +13,11 @@ type ApotekRepository struct {
 }
 
 func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
-
 	query := `
         INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     `
-	// Ambil isi pointer photo_url biar aman
-	var url interface{}
+	var url string
 	if apotek.PhotoURL != nil {
 		url = *apotek.PhotoURL
 	}
@@ -27,7 +25,7 @@ func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 	_, err := r.DB.Exec(query,
 		apotek.ID, apotek.AdminID, apotek.Nama, apotek.Alamat,
 		apotek.Latitude, apotek.Longitude, apotek.JamBuka, apotek.JamTutup,
-		apotek.PhoneNumber, apotek.Deskripsi, url)
+		apotek.PhoneNumber, apotek.Deskripsi, url) // <--- Pake url (string)
 
 	return err
 }
@@ -95,13 +93,38 @@ func (r *ObatRepository) CountByApotek(apotekID string, name string) (int, error
 
 func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	query := `
-	UPDATE apotek 
-	SET nama=:nama, alamat=:alamat, latitude=:latitude, longitude=:longitude, 
-	    jam_buka=:jam_buka, jam_tutup=:jam_tutup, phone_number=:phone_number, deskripsi=:deskripsi, photo_url=:photo_url
-	WHERE id=:id
-	`
-	_, err := r.DB.NamedExec(query, apotek)
-	return err
+    UPDATE apotek 
+    SET nama=$1, alamat=$2, latitude=$3, longitude=$4, 
+        jam_buka=$5, jam_tutup=$6, phone_number=$7, deskripsi=$8, photo_url=$9
+    WHERE id=$10
+    `
+	// Ambil nilai dari pointer, kalau nil kasih string kosong
+	var pUrl, phone, desk, buka, tutup string
+	if apotek.PhotoURL != nil {
+		pUrl = *apotek.PhotoURL
+	}
+	if apotek.PhoneNumber != nil {
+		phone = *apotek.PhoneNumber
+	}
+	if apotek.Deskripsi != nil {
+		desk = *apotek.Deskripsi
+	}
+	if apotek.JamBuka != nil {
+		buka = *apotek.JamBuka
+	}
+	if apotek.JamTutup != nil {
+		tutup = *apotek.JamTutup
+	}
+
+	_, err := r.DB.Exec(query,
+		apotek.Nama, apotek.Alamat, apotek.Latitude, apotek.Longitude,
+		buka, tutup, phone, desk, pUrl, apotek.ID)
+
+	if err != nil {
+		fmt.Printf("ERROR UPDATE DB: %v\n", err) // INI BAKAL KELUAR DI RAILWAY!
+		return err
+	}
+	return nil
 }
 
 func (r *ApotekRepository) FindNearby(
