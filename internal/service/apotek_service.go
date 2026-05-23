@@ -103,12 +103,13 @@ func (s *ApotekService) GetByID(id string) (domain.Apotek, error) {
 }
 
 func (s *ApotekService) UpdateImage(adminID string, photo_url string) error {
-	apotek, err := s.Repo.FindByAdmin(uuid.MustParse(adminID))
+	adminUUID, err := uuid.Parse(adminID)
 	if err != nil {
 		return err
 	}
-	apotek.PhotoURL = &photo_url
-	return s.Repo.Update(apotek) // Pastikan fungsi Update di repo beneran nge-update kolom photo_url
+
+	// Panggil fungsi repo baru kita di atas
+	return s.Repo.UpdatePhoto(adminUUID, photo_url)
 }
 
 func (s *ApotekService) GetAllForSuperAdmin(page, limit int) ([]domain.Apotek, int, error) {

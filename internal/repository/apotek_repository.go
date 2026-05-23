@@ -243,3 +243,18 @@ func (r *ApotekRepository) FindAllWithCount(limit, offset int) ([]domain.Apotek,
 
 	return list, total, err
 }
+
+func (r *ApotekRepository) UpdatePhoto(adminID uuid.UUID, url string) error {
+	// Pake query sederhana, update langsung ke tabel apotek berdasarkan admin_id
+	query := `UPDATE apotek SET photo_url = $1 WHERE admin_id = $2`
+
+	result, err := r.DB.Exec(query, url, adminID)
+	if err != nil {
+		fmt.Printf("DEBUG: Gagal update foto di DB: %v\n", err)
+		return err
+	}
+
+	rows, _ := result.RowsAffected()
+	fmt.Printf("DEBUG: Berhasil update %d baris di DB\n", rows)
+	return nil
+}
