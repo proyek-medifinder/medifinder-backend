@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,6 +33,10 @@ func (s *ApotekService) Create(adminID string, nama, alamat string, lat, long fl
 		JamBuka:   &jamBuka,  // Map parameter jamBuka
 		JamTutup:  &jamTutup, // Map parameter jamTutup
 		PhotoURL:  photo_url, // Map parameter gambar
+	}
+
+	if apotek.PhotoURL != nil {
+		fmt.Printf("DEBUG SERVICE: PhotoURL domain: %s\n", *apotek.PhotoURL)
 	}
 
 	return s.Repo.Create(apotek)

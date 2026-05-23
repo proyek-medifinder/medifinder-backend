@@ -14,17 +14,21 @@ type ApotekRepository struct {
 
 func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
 
+	query := `
+        INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    `
+	// Ambil isi pointer photo_url biar aman
+	var url interface{}
 	if apotek.PhotoURL != nil {
-		fmt.Printf("DEBUG: PhotoURL yang mau di-insert: %s\n", *apotek.PhotoURL)
-	} else {
-		fmt.Println("DEBUG: PhotoURL masih NIL!")
+		url = *apotek.PhotoURL
 	}
 
-	query := `
-	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url)
-	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude, :jam_buka, :jam_tutup, :phone_number, :deskripsi, :photo_url)
-	`
-	_, err := r.DB.NamedExec(query, apotek)
+	_, err := r.DB.Exec(query,
+		apotek.ID, apotek.AdminID, apotek.Nama, apotek.Alamat,
+		apotek.Latitude, apotek.Longitude, apotek.JamBuka, apotek.JamTutup,
+		apotek.PhoneNumber, apotek.Deskripsi, url)
+
 	return err
 }
 

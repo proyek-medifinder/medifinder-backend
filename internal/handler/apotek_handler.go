@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -65,6 +66,12 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 				return
 			}
 		}
+	}
+
+	if photo_url != nil {
+		fmt.Printf("DEBUG HANDLER: URL ada, isinya: %s\n", *photo_url)
+	} else {
+		fmt.Println("DEBUG HANDLER: photo_url MASIH NIL!")
 	}
 
 	err = h.Service.Create(adminID, nama, alamat, lat, lng, jamBuka, jamTutup, photo_url)
