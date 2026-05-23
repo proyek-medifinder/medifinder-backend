@@ -60,21 +60,36 @@ func (s *ApotekService) GetByAdmin(adminID string) (*domain.Apotek, error) {
 }
 
 func (s *ApotekService) Update(adminID string, nama, alamat string, lat, long float64, jamBuka, jamTutup, phoneNumber, deskripsi *string, photo_url *string) error {
-	apotek, err := s.Repo.FindByAdmin(uuid.MustParse(adminID)) // Parse dulu!
+	adminUUID := uuid.MustParse(adminID)
+	apotek, err := s.Repo.FindByAdmin(adminUUID)
 	if err != nil {
 		return err
 	}
 
+	// Update field yang selalu ada
 	apotek.Nama = nama
 	apotek.Alamat = alamat
 	apotek.Latitude = lat
 	apotek.Longitude = long
 
-	apotek.JamBuka = jamBuka
-	apotek.JamTutup = jamTutup
-	apotek.PhoneNumber = phoneNumber
-	apotek.Deskripsi = deskripsi
-	apotek.PhotoURL = photo_url
+	// Update field pointer HANYA JIKA datanya dikirim (tidak nil)
+	if jamBuka != nil {
+		apotek.JamBuka = jamBuka
+	}
+	if jamTutup != nil {
+		apotek.JamTutup = jamTutup
+	}
+	if phoneNumber != nil {
+		apotek.PhoneNumber = phoneNumber
+	}
+	if deskripsi != nil {
+		apotek.Deskripsi = deskripsi
+	}
+
+	// INI YANG PALING PENTING BUAT FOTO:
+	if photo_url != nil && *photo_url != "" {
+		apotek.PhotoURL = photo_url
+	}
 
 	return s.Repo.Update(apotek)
 }

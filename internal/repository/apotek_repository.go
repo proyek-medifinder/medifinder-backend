@@ -248,6 +248,8 @@ func (r *ApotekRepository) UpdatePhoto(adminID uuid.UUID, url string) error {
 	// Pake query sederhana, update langsung ke tabel apotek berdasarkan admin_id
 	query := `UPDATE apotek SET photo_url = $1 WHERE admin_id = $2`
 
+	fmt.Printf("DEBUG FINAL: SQL UPDATE apotek SET photo_url='%s' WHERE admin_id='%s'\n", url, adminID)
+
 	result, err := r.DB.Exec(query, url, adminID)
 	if err != nil {
 		fmt.Printf("DEBUG: Gagal update foto di DB: %v\n", err)
