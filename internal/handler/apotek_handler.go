@@ -2,12 +2,11 @@ package handler
 
 import (
 	"net/http"
-	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/dto"
+	"github.com/sasaefulanwar/medifinder/internal/helper"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 	"github.com/sasaefulanwar/medifinder/internal/utils"
 )
@@ -53,18 +52,23 @@ func (h *ApotekHandler) Create(c *gin.Context) {
 
 	var photo_url *string
 	file, err := c.FormFile("photo")
-	if err == nil {
-		ext := filepath.Ext(file.Filename)
-		filename := uuid.New().String() + ext
-		dst := "public/uploads/apotek/" + filename
 
-		if err := c.SaveUploadedFile(file, dst); err == nil {
-			path := "/" + dst
-			photo_url = &path
+	if err == nil {
+		src, err := file.Open()
+		if err == nil {
+			defer src.Close()
+			url, err := helper.UploadToCloudinary(src) // Pakai helper yang udah kita bikin
+			if err == nil {
+				photo_url = &url
+			} else {
+				c.JSON(500, gin.H{"error": "Gagal upload ke Cloud: " + err.Error()})
+				return
+			}
 		}
 	}
 
 	err = h.Service.Create(adminID, nama, alamat, lat, lng, jamBuka, jamTutup, photo_url)
+
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -230,31 +234,30 @@ func (h *ApotekHandler) GetByID(c *gin.Context) {
 // @Security     Bearer
 // @Router       /admin/foto [put]
 func (h *ApotekHandler) UpdatePhoto(c *gin.Context) {
-	adminID := c.GetString("user_id") // Ambil ID dari token JWT
+	adminID := c.GetString("user_id")
 
-	// 1. Ambil file dari form-data
 	file, err := c.FormFile("photo")
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Foto tidak ditemukan di request"})
 		return
 	}
 
-	ext := filepath.Ext(file.Filename)
-	filename := uuid.New().String() + ext
-	dst := "public/uploads/apotek/" + filename
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Gagal membuka file"})
+		return
+	}
+	defer src.Close()
 
-	// 3. Simpan file ke folder lokal
-	if err := c.SaveUploadedFile(file, dst); err != nil {
-		c.JSON(500, gin.H{"error": "Gagal simpan foto ke server"})
+	// Upload ke Cloudinary
+	url, err := helper.UploadToCloudinary(src)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Gagal upload ke Cloud: " + err.Error()})
 		return
 	}
 
-	// 4. Update URL-nya ke Database lewat service
-	// (Simpan URL path-nya, misal: /public/uploads/apotek/xxx.jpg)
-	photo_url := "/" + dst
-
-	// Pake h.Service, sesuai nama field di struct lu
-	err = h.Service.UpdateImage(adminID, photo_url)
+	// Update ke Database (Simpan URL-nya saja)
+	err = h.Service.UpdateImage(adminID, url)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
@@ -262,7 +265,7 @@ func (h *ApotekHandler) UpdatePhoto(c *gin.Context) {
 
 	c.JSON(200, gin.H{
 		"message": "Foto apotek berhasil diupdate",
-		"url":     photo_url,
+		"url":     url,
 	})
 }
 
