@@ -13,6 +13,13 @@ type ApotekRepository struct {
 }
 
 func (r *ApotekRepository) Create(apotek *domain.Apotek) error {
+
+	if apotek.PhotoURL != nil {
+		fmt.Printf("DEBUG: PhotoURL yang mau di-insert: %s\n", *apotek.PhotoURL)
+	} else {
+		fmt.Println("DEBUG: PhotoURL masih NIL!")
+	}
+
 	query := `
 	INSERT INTO apotek (id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url)
 	VALUES (:id, :admin_id, :nama, :alamat, :latitude, :longitude, :jam_buka, :jam_tutup, :phone_number, :deskripsi, :photo_url)
