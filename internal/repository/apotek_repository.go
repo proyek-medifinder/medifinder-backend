@@ -34,11 +34,11 @@ func (r *ApotekRepository) FindByAdmin(adminID uuid.UUID) (*domain.Apotek, error
 	var apotek domain.Apotek
 
 	query := `
-		SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, 
-		       phone_number, deskripsi, verification_status, rejection_reason, created_at, photo_url 
-		FROM apotek 
-		WHERE admin_id = $1
-	`
+        SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, 
+               phone_number, deskripsi, verification_status, rejection_reason, created_at, photo_url 
+        FROM apotek 
+        WHERE admin_id = $1
+    `
 
 	err := r.DB.Get(&apotek, query, adminID)
 	if err != nil {
