@@ -39,7 +39,19 @@ func (s *SuperAdminService) UpdateAdmin(id, name, email string) error {
 }
 
 func (s *SuperAdminService) DeleteAdmin(id string) error {
-	return s.UserRepo.DeleteAdmin(uuid.MustParse(id))
+	// 1. TUKER STRING ID MENJADI FORMAT UUID
+	adminUUID, err := uuid.Parse(id)
+	if err != nil {
+		return err // Kalau frontend ngirim ID ngaco, langsung stop di sini
+	}
+
+	// 2. KIRIM UUID TADI KE REPOSITORY USER BUAT DIHAPUS (Pake DeleteAdmin!)
+	err = s.UserRepo.DeleteAdmin(adminUUID)
+	if err != nil {
+		return err // Kalau database nolak, error-nya dilempar ke sini biar gak crash
+	}
+
+	return nil
 }
 
 func (s *SuperAdminService) GetPendingAdmins(limit, offset int) ([]dto.PendingAdminResponse, int, error) {
