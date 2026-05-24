@@ -86,13 +86,12 @@ func (r *UserRepository) UpdateAdmin(id uuid.UUID, name, email string) error {
 }
 
 func (r *UserRepository) DeleteAdmin(id uuid.UUID) error {
-	// ================= INI INTI DARI SOFT DELETE =================
-	// Kita gak pakai DELETE FROM, tapi nge-update deleted_at jadi waktu saat ini
 	_, err := r.DB.Exec(`
-		UPDATE users
-		SET deleted_at = CURRENT_TIMESTAMP, status = 'deleted'
-		WHERE id=$1 AND role_id=$2 AND deleted_at IS NULL
+		DELETE FROM users
+		WHERE id=$1
+		AND role_id=$2
 	`, id, RoleAdminUUID)
+
 	return err
 }
 
