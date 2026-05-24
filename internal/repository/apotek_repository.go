@@ -138,78 +138,158 @@ func (r *ApotekRepository) FindNearby(
 	list := []domain.Apotek{}
 	var total int
 
-	// 1. BUAT ARGS UNTUK COUNT QUERY
+	// =========================================================
+	// Haversine Formula SAFE VERSION (ANTI acos out of range)
+	// =========================================================
+
+	distanceFormula := `
+		6371 * acos(
+			LEAST(
+				1.0,
+				GREATEST(
+					-1.0,
+					cos(radians($1)) * cos(radians(latitude)) *
+					cos(radians(longitude) - radians($2)) +
+					sin(radians($1)) * sin(radians(latitude))
+				)
+			)
+		)
+	`
+
+	// =========================================================
+	// COUNT QUERY
+	// =========================================================
+
 	var countArgs []interface{}
+
 	distanceCondition := "TRUE"
 	distanceSelect := "0 AS distance"
 
 	if lat != 0 && lng != 0 {
-		distanceCondition = `(
-			6371 * acos(
-				cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) +
-				sin(radians($1)) * sin(radians(latitude))
-			)
-		) <= $3`
-		distanceSelect = `(
-			6371 * acos(
-				cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) +
-				sin(radians($1)) * sin(radians(latitude))
-			)
-		) AS distance`
+
+		distanceCondition = fmt.Sprintf(`(
+			%s
+		) <= $3`, distanceFormula)
+
+		distanceSelect = fmt.Sprintf(`(
+			%s
+		) AS distance`, distanceFormula)
+
 		countArgs = append(countArgs, lat, lng, radius)
 	}
 
-	// Tentukan posisi index parameter waktu untuk COUNT
+	// PARAM WAKTU
 	countTimeParam := fmt.Sprintf("$%d", len(countArgs)+1)
 	countArgs = append(countArgs, currentTime)
 
-	// Filter jam operasional (NULLIF biar string kosong aman jadi NULL)
+	// FILTER JAM OPERASIONAL
 	timeConditionCount := fmt.Sprintf(`(
 		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
+
 		OR
-		(NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time AND %[1]s::time >= NULLIF(jam_buka, '')::time AND %[1]s::time <= NULLIF(jam_tutup, '')::time)
+
+		(
+			NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time
+			AND %[1]s::time >= NULLIF(jam_buka, '')::time
+			AND %[1]s::time <= NULLIF(jam_tutup, '')::time
+		)
+
 		OR
-		(NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time AND (%[1]s::time >= NULLIF(jam_buka, '')::time OR %[1]s::time <= NULLIF(jam_tutup, '')::time))
+
+		(
+			NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time
+			AND (
+				%[1]s::time >= NULLIF(jam_buka, '')::time
+				OR
+				%[1]s::time <= NULLIF(jam_tutup, '')::time
+			)
+		)
 	)`, countTimeParam)
 
-	// Eksekusi COUNT Query duluan
-	countQuery := "SELECT COUNT(*) FROM apotek WHERE " + distanceCondition + " AND " + timeConditionCount
+	// COUNT QUERY
+	countQuery := `
+		SELECT COUNT(*)
+		FROM apotek
+		WHERE ` + distanceCondition + `
+		AND ` + timeConditionCount
+
 	err := r.DB.Get(&total, countQuery, countArgs...)
 	if err != nil {
 		fmt.Printf("ERROR COUNT NEARBY: %v\n", err)
 		return nil, 0, err
 	}
 
-	// =================================================================
-	// 2. BUAT ARGS BARU KHUSUS UNTUK DATA QUERY (Mulai dari awal $1 lagi)
+	// =========================================================
+	// DATA QUERY
+	// =========================================================
+
 	var dataArgs []interface{}
+
 	if lat != 0 && lng != 0 {
 		dataArgs = append(dataArgs, lat, lng, radius)
 	}
 
+	// PARAM WAKTU
 	dataTimeParam := fmt.Sprintf("$%d", len(dataArgs)+1)
 	dataArgs = append(dataArgs, currentTime)
 
 	timeConditionData := fmt.Sprintf(`(
 		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
+
 		OR
-		(NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time AND %[1]s::time >= NULLIF(jam_buka, '')::time AND %[1]s::time <= NULLIF(jam_tutup, '')::time)
+
+		(
+			NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time
+			AND %[1]s::time >= NULLIF(jam_buka, '')::time
+			AND %[1]s::time <= NULLIF(jam_tutup, '')::time
+		)
+
 		OR
-		(NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time AND (%[1]s::time >= NULLIF(jam_buka, '')::time OR %[1]s::time <= NULLIF(jam_tutup, '')::time))
+
+		(
+			NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time
+			AND (
+				%[1]s::time >= NULLIF(jam_buka, '')::time
+				OR
+				%[1]s::time <= NULLIF(jam_tutup, '')::time
+			)
+		)
 	)`, dataTimeParam)
 
+	// LIMIT OFFSET
 	limitParam := fmt.Sprintf("$%d", len(dataArgs)+1)
 	offsetParam := fmt.Sprintf("$%d", len(dataArgs)+2)
+
 	dataArgs = append(dataArgs, limit, offset)
 
-	baseDataQuery := " FROM apotek WHERE " + distanceCondition + " AND " + timeConditionData
+	baseDataQuery := `
+		FROM apotek
+		WHERE ` + distanceCondition + `
+		AND ` + timeConditionData
 
-	// Ambil semua kolom yang dibutuhkan oleh struct domain.Apotek
-	dataQuery := "SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url, verification_status, created_at, " +
-		distanceSelect + baseDataQuery +
-		" ORDER BY distance ASC LIMIT " + limitParam + " OFFSET " + offsetParam
+	// DATA QUERY
+	dataQuery := `
+		SELECT
+			id,
+			admin_id,
+			nama,
+			alamat,
+			latitude,
+			longitude,
+			jam_buka,
+			jam_tutup,
+			phone_number,
+			deskripsi,
+			photo_url,
+			verification_status,
+			created_at,
+			` + distanceSelect + `
+		` + baseDataQuery + `
+		ORDER BY distance ASC
+		LIMIT ` + limitParam + `
+		OFFSET ` + offsetParam
 
-	// Eksekusi DATA Query
+	// EXECUTE QUERY
 	err = r.DB.Select(&list, dataQuery, dataArgs...)
 	if err != nil {
 		fmt.Printf("ERROR SELECT NEARBY: %v\n", err)
