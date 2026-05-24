@@ -137,60 +137,67 @@ func (r *ApotekRepository) FindNearby(
 	list := []domain.Apotek{}
 	var total int
 
-	// 1. Kondisi Filter Jarak (Opsional kalau lat/lng tidak 0)
-	distanceCondition := "TRUE" // Default kalau ga ada koordinat
-	distanceSelect := "0 AS distance"
+	// Array untuk nampung parameter secara dinamis
+	var args []interface{}
+
+	// 1. Kondisi Filter Jarak (Dinamic)
+	distanceCondition := "TRUE"
+	distanceSelect := "0 AS distance" // Default kalau ga ada koordinat
+
 	if lat != 0 && lng != 0 {
+		// Kalau koordinat ada, kita pake index $1, $2, $3
 		distanceCondition = `(
 			6371 * acos(
-				cos(radians($1)) *
-				cos(radians(latitude)) *
-				cos(radians(longitude) - radians($2)) +
-				sin(radians($1)) *
-				sin(radians(latitude))
+				cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) +
+				sin(radians($1)) * sin(radians(latitude))
 			)
 		) <= $3`
 		distanceSelect = `(
 			6371 * acos(
-				cos(radians($1)) *
-				cos(radians(latitude)) *
-				cos(radians(longitude) - radians($2)) +
-				sin(radians($1)) *
-				sin(radians(latitude))
+				cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) +
+				sin(radians($1)) * sin(radians(latitude))
 			)
 		) AS distance`
+		args = append(args, lat, lng, radius)
 	}
 
-	// 2. Kondisi Filter Jam (Handle NULL supaya tetap muncul)
-	// Kita tambah "jam_buka IS NULL" supaya data lu yg NULL ga ilang
-	timeCondition := `(
-		(jam_buka IS NULL OR jam_tutup IS NULL)
+	// Tentukan index buat currentTime (bisa $4 kalau ada koordinat, bisa $1 kalau ga ada)
+	timeParam := fmt.Sprintf("$%d", len(args)+1)
+	args = append(args, currentTime)
+
+	// 2. Kondisi Filter Jam (SUPER AMAN pakai NULLIF)
+	// Kita ubah jam_buka == "" jadi NULL biar Postgres ga ngamuk saat nge-cast ::time
+	timeCondition := fmt.Sprintf(`(
+		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
 		OR
-		(jam_buka::time <= jam_tutup::time AND $4::time >= jam_buka::time AND $4::time <= jam_tutup::time)
+		(NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time AND %[1]s::time >= NULLIF(jam_buka, '')::time AND %[1]s::time <= NULLIF(jam_tutup, '')::time)
 		OR
-		(jam_buka::time > jam_tutup::time AND ($4::time >= jam_buka::time OR $4::time <= jam_tutup::time))
-	)`
+		(NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time AND (%[1]s::time >= NULLIF(jam_buka, '')::time OR %[1]s::time <= NULLIF(jam_tutup, '')::time))
+	)`, timeParam)
 
 	baseQuery := " FROM apotek WHERE " + distanceCondition + " AND " + timeCondition
 
-	// 3. Eksekusi Count Query
+	// 3. Eksekusi Count
 	countQuery := "SELECT COUNT(*) " + baseQuery
-	err := r.DB.Get(&total, countQuery, lat, lng, radius, currentTime)
+	err := r.DB.Get(&total, countQuery, args...)
 	if err != nil {
+		fmt.Printf("ERROR COUNT NEARBY: %v\n", err)
 		return nil, 0, err
 	}
 
-	// 4. Eksekusi Data Query
-	dataQuery := "SELECT id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, photo_url, " +
+	// Tambahin limit & offset ke argument list
+	limitParam := fmt.Sprintf("$%d", len(args)+1)
+	offsetParam := fmt.Sprintf("$%d", len(args)+2)
+	args = append(args, limit, offset)
+
+	// 4. Eksekusi Data
+	dataQuery := "SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url, verification_status, created_at, " +
 		distanceSelect + baseQuery +
-		" ORDER BY distance ASC LIMIT $5 OFFSET $6"
+		" ORDER BY distance ASC LIMIT " + limitParam + " OFFSET " + offsetParam
 
-	err = r.DB.Select(&list, dataQuery,
-		lat, lng, radius, currentTime,
-		limit, offset,
-	)
-
+	err = r.DB.Select(&list, dataQuery, args...)
 	if err != nil {
+		fmt.Printf("ERROR SELECT NEARBY: %v\n", err)
 		return nil, 0, err
 	}
 
