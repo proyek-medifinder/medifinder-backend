@@ -342,3 +342,27 @@ func (h *ApotekHandler) MobileIndex(c *gin.Context) {
 		},
 	})
 }
+
+// MobileGetByID godoc
+// @Summary      Detail Apotek (Mobile)
+// @Description  Mengambil detail apotek beserta daftar obat untuk kebutuhan aplikasi mobile tanpa login
+// @Tags         Mobile Apotek
+// @Produce      json
+// @Param        id path string true "ID Apotek"
+// @Success      200 {object} map[string]interface{}
+// @Failure      404 {object} map[string]interface{} "Apotek tidak ditemukan"
+// @Router       /mobile/apotek/{id} [get]
+func (h *ApotekHandler) MobileGetByID(c *gin.Context) {
+	id := c.Param("id")
+
+	apotek, err := h.Service.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Apotek tidak ditemukan"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Berhasil mengambil detail apotek",
+		"data":    apotek,
+	})
+}
