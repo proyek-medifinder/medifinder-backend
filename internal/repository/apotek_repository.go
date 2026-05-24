@@ -127,6 +127,7 @@ func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	return nil
 }
 
+
 func (r *ApotekRepository) FindNearby(
 	lat, lng float64,
 	radius float64,
@@ -137,15 +138,12 @@ func (r *ApotekRepository) FindNearby(
 	list := []domain.Apotek{}
 	var total int
 
-	// Array untuk nampung parameter secara dinamis
-	var args []interface{}
-
-	// 1. Kondisi Filter Jarak (Dinamic)
+	// 1. BUAT ARGS UNTUK COUNT QUERY
+	var countArgs []interface{}
 	distanceCondition := "TRUE"
-	distanceSelect := "0 AS distance" // Default kalau ga ada koordinat
+	distanceSelect := "0 AS distance"
 
 	if lat != 0 && lng != 0 {
-		// Kalau koordinat ada, kita pake index $1, $2, $3
 		distanceCondition = `(
 			6371 * acos(
 				cos(radians($1)) * cos(radians(latitude)) * cos(radians(longitude) - radians($2)) +
@@ -158,44 +156,61 @@ func (r *ApotekRepository) FindNearby(
 				sin(radians($1)) * sin(radians(latitude))
 			)
 		) AS distance`
-		args = append(args, lat, lng, radius)
+		countArgs = append(countArgs, lat, lng, radius)
 	}
 
-	// Tentukan index buat currentTime (bisa $4 kalau ada koordinat, bisa $1 kalau ga ada)
-	timeParam := fmt.Sprintf("$%d", len(args)+1)
-	args = append(args, currentTime)
+	// Tentukan posisi index parameter waktu untuk COUNT
+	countTimeParam := fmt.Sprintf("$%d", len(countArgs)+1)
+	countArgs = append(countArgs, currentTime)
 
-	// 2. Kondisi Filter Jam (SUPER AMAN pakai NULLIF)
-	// Kita ubah jam_buka == "" jadi NULL biar Postgres ga ngamuk saat nge-cast ::time
-	timeCondition := fmt.Sprintf(`(
+	// Filter jam operasional (NULLIF biar string kosong aman jadi NULL)
+	timeConditionCount := fmt.Sprintf(`(
 		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
 		OR
 		(NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time AND %[1]s::time >= NULLIF(jam_buka, '')::time AND %[1]s::time <= NULLIF(jam_tutup, '')::time)
 		OR
 		(NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time AND (%[1]s::time >= NULLIF(jam_buka, '')::time OR %[1]s::time <= NULLIF(jam_tutup, '')::time))
-	)`, timeParam)
+	)`, countTimeParam)
 
-	baseQuery := " FROM apotek WHERE " + distanceCondition + " AND " + timeCondition
-
-	// 3. Eksekusi Count
-	countQuery := "SELECT COUNT(*) " + baseQuery
-	err := r.DB.Get(&total, countQuery, args...)
+	// Eksekusi COUNT Query duluan
+	countQuery := "SELECT COUNT(*) FROM apotek WHERE " + distanceCondition + " AND " + timeConditionCount
+	err := r.DB.Get(&total, countQuery, countArgs...)
 	if err != nil {
 		fmt.Printf("ERROR COUNT NEARBY: %v\n", err)
 		return nil, 0, err
 	}
 
-	// Tambahin limit & offset ke argument list
-	limitParam := fmt.Sprintf("$%d", len(args)+1)
-	offsetParam := fmt.Sprintf("$%d", len(args)+2)
-	args = append(args, limit, offset)
+	// =================================================================
+	// 2. BUAT ARGS BARU KHUSUS UNTUK DATA QUERY (Mulai dari awal $1 lagi)
+	var dataArgs []interface{}
+	if lat != 0 && lng != 0 {
+		dataArgs = append(dataArgs, lat, lng, radius)
+	}
 
-	// 4. Eksekusi Data
+	dataTimeParam := fmt.Sprintf("$%d", len(dataArgs)+1)
+	dataArgs = append(dataArgs, currentTime)
+
+	timeConditionData := fmt.Sprintf(`(
+		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
+		OR
+		(NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time AND %[1]s::time >= NULLIF(jam_buka, '')::time AND %[1]s::time <= NULLIF(jam_tutup, '')::time)
+		OR
+		(NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time AND (%[1]s::time >= NULLIF(jam_buka, '')::time OR %[1]s::time <= NULLIF(jam_tutup, '')::time))
+	)`, dataTimeParam)
+
+	limitParam := fmt.Sprintf("$%d", len(dataArgs)+1)
+	offsetParam := fmt.Sprintf("$%d", len(dataArgs)+2)
+	dataArgs = append(dataArgs, limit, offset)
+
+	baseDataQuery := " FROM apotek WHERE " + distanceCondition + " AND " + timeConditionData
+
+	// Ambil semua kolom yang dibutuhkan oleh struct domain.Apotek
 	dataQuery := "SELECT id, admin_id, nama, alamat, latitude, longitude, jam_buka, jam_tutup, phone_number, deskripsi, photo_url, verification_status, created_at, " +
-		distanceSelect + baseQuery +
+		distanceSelect + baseDataQuery +
 		" ORDER BY distance ASC LIMIT " + limitParam + " OFFSET " + offsetParam
 
-	err = r.DB.Select(&list, dataQuery, args...)
+	// Eksekusi DATA Query
+	err = r.DB.Select(&list, dataQuery, dataArgs...)
 	if err != nil {
 		fmt.Printf("ERROR SELECT NEARBY: %v\n", err)
 		return nil, 0, err
@@ -203,6 +218,7 @@ func (r *ApotekRepository) FindNearby(
 
 	return list, total, nil
 }
+
 
 func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 	var apotek domain.Apotek
