@@ -1,0 +1,10 @@
+./apotek_handler.go
+./artikel_handler.go
+./auth_handler.go
+./cart_handler.go
+./kontak_handler.go
+./obat_handler.go
+./payment_handler.go
+./resep_handler.go
+./superadmin_handler.go
+./transaksi_handler.go

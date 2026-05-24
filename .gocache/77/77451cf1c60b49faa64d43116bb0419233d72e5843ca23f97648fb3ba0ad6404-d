@@ -1,0 +1,10 @@
+./apotek_service.go
+./artikel_service.go
+./auth_service.go
+./cart_service.go
+./kontak_service.go
+./obat_service.go
+./payment_service.go
+./resep_service.go
+./superadmin_service.go
+./transaksi_service.go

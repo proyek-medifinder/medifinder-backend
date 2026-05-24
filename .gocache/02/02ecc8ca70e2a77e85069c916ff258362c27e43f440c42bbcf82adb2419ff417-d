@@ -1,0 +1,8 @@
+./apotek_repository.go
+./artikel_repository.go
+./cart_repository.go
+./kontak_repository.go
+./obat_repository.go
+./resep_repository.go
+./transaksi_repository.go
+./user_repository.go

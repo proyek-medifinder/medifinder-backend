@@ -310,3 +310,35 @@ func (h *ApotekHandler) SuperAdminIndex(c *gin.Context) {
 		},
 	})
 }
+
+// MobileIndex godoc
+// @Summary      Daftar Semua Apotek (Mobile)
+// @Description  Mengambil semua daftar apotek untuk kebutuhan aplikasi mobile tanpa login
+// @Tags         Mobile Apotek
+// @Produce      json
+// @Param        page query int false "Halaman"
+// @Param        limit query int false "Limit data"
+// @Success      200 {object} map[string]interface{}
+// @Failure      500 {object} map[string]interface{} "Internal server error"
+// @Router       /mobile/apotek [get]
+func (h *ApotekHandler) MobileIndex(c *gin.Context) {
+	page, limit, _ := utils.GetPaginationAdvanced(c)
+
+	data, total, err := h.Service.GetAllForSuperAdmin(page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil daftar apotek"})
+		return
+	}
+
+	totalPage := (total + limit - 1) / limit
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"meta": gin.H{
+			"page":       page,
+			"limit":      limit,
+			"total":      total,
+			"total_page": totalPage,
+		},
+	})
+}

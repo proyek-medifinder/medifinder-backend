@@ -1,0 +1,13 @@
+./admin_dto.go
+./apotek_dto.go
+./artikel_dto.go
+./auth_dto.go
+./cart_dto.go
+./cart_response_dto.go
+./checkout_dto.go
+./kontak_dto.go
+./obat_dto.go
+./payment_dto.go
+./resep_dto.go
+./response.go
+./transaksi_dto.go

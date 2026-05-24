@@ -1,0 +1,10 @@
+./admin_application.go
+./apotek.go
+./artikel.go
+./cart.go
+./detail_transaksi.go
+./kontak.go
+./obat.go
+./resep.go
+./transaksi.go
+./user.go
