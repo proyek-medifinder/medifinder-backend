@@ -5,35 +5,31 @@ import (
 	"html/template"
 	"log"
 	"os"
-	"strconv"
 
-	"gopkg.in/gomail.v2"
+	"github.com/resend/resend-go/v2"
 )
 
 func SendEmail(to, subject, body string) {
 	go func() {
-		m := gomail.NewMessage()
-		m.SetHeader("From", os.Getenv("SMTP_EMAIL"))
-		m.SetHeader("To", to)
-		m.SetHeader("Subject", subject)
-		m.SetBody("text/html", body)
+		apiKey := os.Getenv("RESEND_API_KEY")
 
-		portStr := os.Getenv("SMTP_PORT")
-		port, _ := strconv.Atoi(portStr)
-		if port == 0 {
-			port = 465
+		client := resend.NewClient(apiKey)
+
+		params := &resend.SendEmailRequest{
+			From:    "onboarding@resend.dev",
+			To:      []string{to},
+			Subject: subject,
+			Html:    body,
 		}
 
-		d := gomail.NewDialer(
-			os.Getenv("SMTP_HOST"),
-			port,
-			os.Getenv("SMTP_EMAIL"),
-			os.Getenv("SMTP_PASS"),
-		)
+		_, err := client.Emails.Send(params)
 
-		if err := d.DialAndSend(m); err != nil {
+		if err != nil {
 			log.Println("Email gagal dikirim:", err)
+			return
 		}
+
+		log.Println("Email berhasil dikirim ke", to)
 	}()
 }
 
