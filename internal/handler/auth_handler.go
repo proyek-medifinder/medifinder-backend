@@ -275,3 +275,17 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		"data":    userData,
 	})
 }
+
+func (h *AuthHandler) GoogleCallback(c *gin.Context) {
+	// Fungsi ini biasanya buat nangkep token dari query string
+	// atau nanganin redirect setelah Google selesai autentikasi
+	code := c.Query("code")
+	if code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Code tidak ditemukan"})
+		return
+	}
+
+	// Panggil service untuk menukar code dengan profile Google
+	// Tergantung implementasi lu, bisa redirect ke frontend bawa token
+	c.JSON(http.StatusOK, gin.H{"message": "Callback diterima", "code": code})
+}

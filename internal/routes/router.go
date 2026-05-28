@@ -105,6 +105,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
+	r.GET("/auth/google/callback", authHandler.GoogleCallback)
 	r.POST("/kontak", kontakHandler.SubmitMessage)
 	r.GET("/artikel", artikelHandler.GetArticles)
 	r.GET("/artikel/:slug", artikelHandler.GetDetail)
