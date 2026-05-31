@@ -19,7 +19,7 @@ type UserRepository struct {
 func (r *UserRepository) GetUserProfile(id uuid.UUID) (*domain.User, error) {
 	var user domain.User
 	query := `
-		SELECT id, name, email, role_id, status, profile_picture, created_at, updated_at 
+		SELECT id, name, email, google_id, role_id, status, profile_picture, created_at, updated_at 
 		FROM users 
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -29,8 +29,8 @@ func (r *UserRepository) GetUserProfile(id uuid.UUID) (*domain.User, error) {
 
 func (r *UserRepository) Create(user *domain.User) error {
 	query := `
-	INSERT INTO users (id, name, email, password, role_id, google_id, status)
-	VALUES (:id, :name, :email, :password, :role_id, :google_id, :status)
+	INSERT INTO users (id, name, email, password, role_id, google_id, profile_picture, status)
+	VALUES (:id, :name, :email, :password, :role_id, :google_id, :profile_picture, :status)
 	`
 	_, err := r.DB.NamedExec(query, user)
 	return err
@@ -39,7 +39,7 @@ func (r *UserRepository) Create(user *domain.User) error {
 func (r *UserRepository) FindByEmail(email string) (*domain.User, error) {
 	var user domain.User
 	query := `
-	SELECT id, name, email, password, role_id, status, google_id 
+	SELECT id, name, email, password, role_id, status, google_id, profile_picture, created_at, updated_at 
 	FROM users 
 	WHERE LOWER(email)=LOWER($1) AND deleted_at IS NULL
 	`
@@ -332,4 +332,12 @@ func (r *UserRepository) UpdateGoogleID(userID uuid.UUID, googleID string) error
 	}
 
 	return nil
+}
+
+// ================= FITUR UPDATE FOTO PROFIL =================
+func (r *UserRepository) UpdateProfilePicture(userID uuid.UUID, profilePicture string) error {
+	query := `UPDATE users SET "profile_picture" = $1, "updated_at" = CURRENT_TIMESTAMP WHERE "id" = $2 AND "deleted_at" IS NULL`
+
+	_, err := r.DB.Exec(query, profilePicture, userID)
+	return err
 }

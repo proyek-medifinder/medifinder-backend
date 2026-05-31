@@ -139,21 +139,40 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 
 	} else {
 		// ---- KONDISI 2: USER LAMA LINKING KE GOOGLE ----
+		var butuhFetchUlang bool
 
+		// 1. Cek & Update Google ID jika kosong
 		if user.GoogleID == nil || *user.GoogleID == "" {
 			errUpdate := s.UserRepo.UpdateGoogleID(user.ID, googleID)
 			if errUpdate != nil {
-				log.Println("Gagal update Google ID ke DB:", errUpdate)
+				log.Println("Gagal update Google ID:", errUpdate)
+			} else {
+				butuhFetchUlang = true
 			}
-			user.GoogleID = &googleID
 		}
 
-		// Untuk foto profil, karena s.UserRepo.Update belum ada,
-		// kita set dulu di memori objek user-nya. Kalo lo punya fungsi UpdateProfilePicture,
-		// lo bisa panggil di bawah ini mirip kayak UpdateGoogleID.
-		if user.ProfilePicture == nil || *user.ProfilePicture == "" {
-			user.ProfilePicture = &picture
-			// s.UserRepo.UpdateProfilePicture(user.ID, picture) // <-- Panggil ini kalo ada nanti cuy
+		// 2. Ambil foto profil dari Google Claims
+		var picture string
+		if p, ok := payload.Claims["picture"].(string); ok {
+			picture = p
+		}
+
+		// Cek & Update Profile Picture jika di DB kosong
+		if picture != "" && (user.ProfilePicture == nil || *user.ProfilePicture == "") {
+			errUpdatePic := s.UserRepo.UpdateProfilePicture(user.ID, picture)
+			if errUpdatePic != nil {
+				log.Println("Gagal update Profile Picture:", errUpdatePic)
+			} else {
+				user.ProfilePicture = &picture
+				butuhFetchUlang = true
+			}
+		}
+
+		if butuhFetchUlang {
+			freshUser, errFetch := s.UserRepo.FindByEmail(user.Email)
+			if errFetch == nil {
+				user = freshUser
+			}
 		}
 	}
 
