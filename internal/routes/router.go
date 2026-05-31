@@ -31,6 +31,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 			"https://medifinder.greendrop.my.id",
 			"https://frontend-medifinder-production.up.railway.app",
 			"https://frontend-medifinder.vercel.app",
+			"https://medifinder.online",
+			"https://www.medifinder.online",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "ngrok-skip-browser-warning"},
