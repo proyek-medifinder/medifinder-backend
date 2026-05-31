@@ -10,6 +10,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/sasaefulanwar/medifinder/internal/controllers"
 	"github.com/sasaefulanwar/medifinder/internal/handler"
 	"github.com/sasaefulanwar/medifinder/internal/middleware"
 	"github.com/sasaefulanwar/medifinder/internal/repository"
@@ -205,6 +206,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	{
 		protectedAuth.POST("/change-password", authHandler.ChangePassword)
 		protectedAuth.GET("/me", authHandler.GetMe)
+		protectedAuth.POST("/google-login", controllers.GoogleLoginAndProfile)
 	}
 
 	return r
