@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -318,7 +319,17 @@ func (r *UserRepository) GetAuthDataByID(userID uuid.UUID) (string, string, erro
 
 // ================= FITUR GOOGLE LOGIN =================
 func (r *UserRepository) UpdateGoogleID(userID uuid.UUID, googleID string) error {
-	query := `UPDATE users SET google_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`
-	_, err := r.DB.Exec(query, googleID, userID)
-	return err
+	query := `UPDATE users SET "google_id" = $1, "updated_at" = CURRENT_TIMESTAMP WHERE "id" = $2 AND "deleted_at" IS NULL`
+
+	result, err := r.DB.Exec(query, googleID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	if rowsAffected == 0 {
+		log.Printf("⚠️ Warning: Google Login berhasil tapi 0 baris ter-update di DB untuk userID: %s. Pastikan ID cocok dan belum soft-delete!", userID)
+	}
+
+	return nil
 }

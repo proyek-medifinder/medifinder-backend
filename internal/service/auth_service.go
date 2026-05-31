@@ -108,19 +108,27 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 	name := payload.Claims["name"].(string)
 	googleID := payload.Subject
 
+	// BONUS SOLUSI: Ambil link foto profil dari claims Google
+	var picture string
+	if p, ok := payload.Claims["picture"].(string); ok {
+		picture = p
+	}
+
 	user, err := s.UserRepo.FindByEmail(email)
 	if err != nil {
+		// ---- KONDISI 1: USER BARU ----
 		randomPassword := generateRandomToken()[:10]
 		hashed, _ := bcrypt.GenerateFromPassword([]byte(randomPassword), bcrypt.DefaultCost)
 
 		newUser := &domain.User{
-			ID:       uuid.New(),
-			Name:     name,
-			Email:    email,
-			Password: string(hashed),
-			RoleID:   RoleUserUUID,
-			GoogleID: &googleID,
-			Status:   "approved",
+			ID:             uuid.New(),
+			Name:           name,
+			Email:          email,
+			Password:       string(hashed),
+			RoleID:         RoleUserUUID,
+			GoogleID:       &googleID,
+			ProfilePicture: &picture, // SEKARANG FOTO PROFIL KE-RECORD SAAAT DAFTAR
+			Status:         "approved",
 		}
 
 		err = s.UserRepo.Create(newUser)
@@ -130,12 +138,22 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 		user = newUser
 
 	} else {
+		// ---- KONDISI 2: USER LAMA LINKING KE GOOGLE ----
+
 		if user.GoogleID == nil || *user.GoogleID == "" {
 			errUpdate := s.UserRepo.UpdateGoogleID(user.ID, googleID)
 			if errUpdate != nil {
-				log.Println("Gagal update Google ID:", errUpdate)
+				log.Println("Gagal update Google ID ke DB:", errUpdate)
 			}
 			user.GoogleID = &googleID
+		}
+
+		// Untuk foto profil, karena s.UserRepo.Update belum ada,
+		// kita set dulu di memori objek user-nya. Kalo lo punya fungsi UpdateProfilePicture,
+		// lo bisa panggil di bawah ini mirip kayak UpdateGoogleID.
+		if user.ProfilePicture == nil || *user.ProfilePicture == "" {
+			user.ProfilePicture = &picture
+			// s.UserRepo.UpdateProfilePicture(user.ID, picture) // <-- Panggil ini kalo ada nanti cuy
 		}
 	}
 
@@ -263,7 +281,6 @@ func (s *AuthService) ResetPassword(token, newPassword string) error {
 }
 
 func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
-
 
 	email, currentHash, err := s.UserRepo.GetAuthDataByID(userID)
 	if err != nil {
