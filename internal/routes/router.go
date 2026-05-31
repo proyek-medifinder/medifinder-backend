@@ -206,7 +206,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	{
 		protectedAuth.POST("/change-password", authHandler.ChangePassword)
 		protectedAuth.GET("/me", authHandler.GetMe)
-		protectedAuth.POST("/google-login", controllers.GoogleLoginAndProfile)
+		protectedAuth.POST("/google-log", controllers.GoogleLoginAndProfile)
 	}
 
 	return r
