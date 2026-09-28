@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"gopkg.in/gomail.v2"
+	"github.com/resend/resend-go/v2"
 )
 
 // SendEmail mengirim email secara asynchronous (goroutine)

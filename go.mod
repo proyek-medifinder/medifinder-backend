@@ -13,8 +13,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
 	github.com/midtrans/midtrans-go v1.3.8
-	github.com/sashabaranov/go-openai v1.42.1
 	github.com/resend/resend-go/v2 v2.28.0
+	github.com/sashabaranov/go-openai v1.42.1
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.1
 	github.com/swaggo/swag v1.16.6
