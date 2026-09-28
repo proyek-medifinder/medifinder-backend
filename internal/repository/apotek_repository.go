@@ -178,41 +178,12 @@ func (r *ApotekRepository) FindNearby(
 		countArgs = append(countArgs, lat, lng, radius)
 	}
 
-	// PARAM WAKTU
-	countTimeParam := fmt.Sprintf("$%d", len(countArgs)+1)
-	countArgs = append(countArgs, currentTime)
-
-	// FILTER JAM OPERASIONAL
-	timeConditionCount := fmt.Sprintf(`(
-		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
-
-		OR
-
-		(
-			NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time
-			AND %[1]s::time >= NULLIF(jam_buka, '')::time
-			AND %[1]s::time <= NULLIF(jam_tutup, '')::time
-		)
-
-		OR
-
-		(
-			NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time
-			AND (
-				%[1]s::time >= NULLIF(jam_buka, '')::time
-				OR
-				%[1]s::time <= NULLIF(jam_tutup, '')::time
-			)
-		)
-	)`, countTimeParam)
-
-	// COUNT QUERY
+	// COUNT QUERY (tanpa filter jam — semua apotek APPROVED dalam radius ditampilkan)
 	countQuery := `
 		SELECT COUNT(*)
 		FROM apotek
 		WHERE UPPER(verification_status) = 'APPROVED'
-		AND ` + distanceCondition + `
-		AND ` + timeConditionCount
+		AND ` + distanceCondition
 
 	err := r.DB.Get(&total, countQuery, countArgs...)
 	if err != nil {
@@ -230,44 +201,17 @@ func (r *ApotekRepository) FindNearby(
 		dataArgs = append(dataArgs, lat, lng, radius)
 	}
 
-	// PARAM WAKTU
-	dataTimeParam := fmt.Sprintf("$%d", len(dataArgs)+1)
-	dataArgs = append(dataArgs, currentTime)
-
-	timeConditionData := fmt.Sprintf(`(
-		(NULLIF(jam_buka, '') IS NULL OR NULLIF(jam_tutup, '') IS NULL)
-
-		OR
-
-		(
-			NULLIF(jam_buka, '')::time <= NULLIF(jam_tutup, '')::time
-			AND %[1]s::time >= NULLIF(jam_buka, '')::time
-			AND %[1]s::time <= NULLIF(jam_tutup, '')::time
-		)
-
-		OR
-
-		(
-			NULLIF(jam_buka, '')::time > NULLIF(jam_tutup, '')::time
-			AND (
-				%[1]s::time >= NULLIF(jam_buka, '')::time
-				OR
-				%[1]s::time <= NULLIF(jam_tutup, '')::time
-			)
-		)
-	)`, dataTimeParam)
-
 	// LIMIT OFFSET
 	limitParam := fmt.Sprintf("$%d", len(dataArgs)+1)
 	offsetParam := fmt.Sprintf("$%d", len(dataArgs)+2)
 
 	dataArgs = append(dataArgs, limit, offset)
 
+	// DATA QUERY (tanpa filter jam — frontend yang tampilkan badge Buka/Tutup)
 	baseDataQuery := `
 		FROM apotek
 		WHERE UPPER(verification_status) = 'APPROVED'
-		AND ` + distanceCondition + `
-		AND ` + timeConditionData
+		AND ` + distanceCondition
 
 	// DATA QUERY
 	dataQuery := `
