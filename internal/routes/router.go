@@ -10,6 +10,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
+	"github.com/sasaefulanwar/medifinder/internal/controllers"
 	"github.com/sasaefulanwar/medifinder/internal/handler"
 	"github.com/sasaefulanwar/medifinder/internal/middleware"
 	"github.com/sasaefulanwar/medifinder/internal/repository"
@@ -31,6 +32,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 			"https://medifinder.greendrop.my.id",
 			"https://frontend-medifinder-production.up.railway.app",
 			"https://frontend-medifinder.vercel.app",
+			"https://medifinder.online",
+			"https://www.medifinder.online",
 		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "ngrok-skip-browser-warning"},
@@ -109,6 +112,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
+	r.GET("/auth/google/callback", authHandler.GoogleCallback)
 	r.POST("/api/chat", chatbotHandler.Chat)
 	r.POST("/kontak", kontakHandler.SubmitMessage)
 	r.GET("/artikel", artikelHandler.GetArticles)
@@ -207,6 +211,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	{
 		protectedAuth.POST("/change-password", authHandler.ChangePassword)
 		protectedAuth.GET("/me", authHandler.GetMe)
+		protectedAuth.POST("/google-log", controllers.GoogleLoginAndProfile)
 	}
 
 	return r

@@ -108,19 +108,27 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 	name := payload.Claims["name"].(string)
 	googleID := payload.Subject
 
+	// BONUS SOLUSI: Ambil link foto profil dari claims Google
+	var picture string
+	if p, ok := payload.Claims["picture"].(string); ok {
+		picture = p
+	}
+
 	user, err := s.UserRepo.FindByEmail(email)
 	if err != nil {
+		// ---- KONDISI 1: USER BARU ----
 		randomPassword := generateRandomToken()[:10]
 		hashed, _ := bcrypt.GenerateFromPassword([]byte(randomPassword), bcrypt.DefaultCost)
 
 		newUser := &domain.User{
-			ID:       uuid.New(),
-			Name:     name,
-			Email:    email,
-			Password: string(hashed),
-			RoleID:   RoleUserUUID,
-			GoogleID: &googleID,
-			Status:   "approved",
+			ID:             uuid.New(),
+			Name:           name,
+			Email:          email,
+			Password:       string(hashed),
+			RoleID:         RoleUserUUID,
+			GoogleID:       &googleID,
+			ProfilePicture: &picture, // SEKARANG FOTO PROFIL KE-RECORD SAAAT DAFTAR
+			Status:         "approved",
 		}
 
 		err = s.UserRepo.Create(newUser)
@@ -130,12 +138,41 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 		user = newUser
 
 	} else {
+		// ---- KONDISI 2: USER LAMA LINKING KE GOOGLE ----
+		var butuhFetchUlang bool
+
+		// 1. Cek & Update Google ID jika kosong
 		if user.GoogleID == nil || *user.GoogleID == "" {
 			errUpdate := s.UserRepo.UpdateGoogleID(user.ID, googleID)
 			if errUpdate != nil {
 				log.Println("Gagal update Google ID:", errUpdate)
+			} else {
+				butuhFetchUlang = true
 			}
-			user.GoogleID = &googleID
+		}
+
+		// 2. Ambil foto profil dari Google Claims
+		var picture string
+		if p, ok := payload.Claims["picture"].(string); ok {
+			picture = p
+		}
+
+		// Cek & Update Profile Picture jika di DB kosong
+		if picture != "" && (user.ProfilePicture == nil || *user.ProfilePicture == "") {
+			errUpdatePic := s.UserRepo.UpdateProfilePicture(user.ID, picture)
+			if errUpdatePic != nil {
+				log.Println("Gagal update Profile Picture:", errUpdatePic)
+			} else {
+				user.ProfilePicture = &picture
+				butuhFetchUlang = true
+			}
+		}
+
+		if butuhFetchUlang {
+			freshUser, errFetch := s.UserRepo.FindByEmail(user.Email)
+			if errFetch == nil {
+				user = freshUser
+			}
 		}
 	}
 
@@ -263,7 +300,6 @@ func (s *AuthService) ResetPassword(token, newPassword string) error {
 }
 
 func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
-
 
 	email, currentHash, err := s.UserRepo.GetAuthDataByID(userID)
 	if err != nil {

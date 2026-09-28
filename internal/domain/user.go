@@ -12,6 +12,7 @@ type User struct {
 	Email            string     `db:"email" json:"email"`
 	Password         string     `db:"password" json:"-"`
 	RoleID           uuid.UUID  `db:"role_id" json:"role_id"`
+	Avatar           string     `json:"avatar"`
 	GoogleID         *string    `db:"google_id" json:"google_id,omitempty"`
 	ProfilePicture   *string    `db:"profile_picture" json:"profile_picture,omitempty"`
 	ResetToken       *string    `db:"reset_token" json:"-"`

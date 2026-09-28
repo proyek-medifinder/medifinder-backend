@@ -2,101 +2,80 @@ package utils
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
 
+// SendEmail mengirim email secara asynchronous (goroutine)
 func SendEmail(to, subject, body string) {
+	// Ambil API Key di luar goroutine untuk memastikan env ter-load dengan benar
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		log.Println("⚠️ MAILER ERROR: RESEND_API_KEY tidak ditemukan di environment variable!")
+		return
+	}
+
+	// Tentukan asal email secara dinamis (bisa diset lewat env nanti kalau udah punya domain custom)
+	fromEmail := os.Getenv("EMAIL_FROM")
+	if fromEmail == "" {
+		fromEmail = "onboarding@resend.dev" // Default resend dev
+	}
+
 	go func() {
-		m := gomail.NewMessage()
-		m.SetHeader("From", os.Getenv("SMTP_EMAIL"))
-		m.SetHeader("To", to)
-		m.SetHeader("Subject", subject)
-		m.SetBody("text/html", body)
+		apiKey := os.Getenv("RESEND_API_KEY")
 
-		portStr := os.Getenv("SMTP_PORT")
-		port, _ := strconv.Atoi(portStr)
-		if port == 0 {
-			port = 465
+		client := resend.NewClient(apiKey)
+
+		params := &resend.SendEmailRequest{
+			From:    "onboarding@resend.dev",
+			To:      []string{to},
+			Subject: subject,
+			Html:    body,
 		}
 
-		d := gomail.NewDialer(
-			os.Getenv("SMTP_HOST"),
-			port,
-			os.Getenv("SMTP_EMAIL"),
-			os.Getenv("SMTP_PASS"),
-		)
+		_, err := client.Emails.Send(params)
 
-		if err := d.DialAndSend(m); err != nil {
+		if err != nil {
 			log.Println("Email gagal dikirim:", err)
+			return
 		}
+
+		log.Println("Email berhasil dikirim ke", to)
 	}()
 }
 
+// ParseTemplate mencari lokasi file html secara absolut dari root proyek agar anti-error path
 func ParseTemplate(templateFileName string, data interface{}) (string, error) {
-	t, err := template.ParseFiles(templateFileName)
+	// Ambil absolute path dari directory tempat aplikasi berjalan saat ini
+	currentDir, err := os.Getwd()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("gagal mendapatkan working directory: %v", err)
+	}
+
+	// Gabungkan base path dengan templateFileName (misal: templateFileName isinya "templates/emails/reset_password.html")
+	// Kode ini bikin pencarian file aman meskipun dipanggil dari folder handler atau service
+	finalPath := filepath.Join(currentDir, templateFileName)
+
+	// Cek dulu filenya beneran ada apa kagak sebelum diparse
+	if _, err := os.Stat(finalPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("file template tidak ditemukan di jalur: %s", finalPath)
+	}
+
+	t, err := template.ParseFiles(finalPath)
+	if err != nil {
+		return "", fmt.Errorf("gagal parse file template: %v", err)
 	}
 
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
-		return "", err
+		return "", fmt.Errorf("gagal execute data ke template: %v", err)
 	}
 
 	return buf.String(), nil
 }
-
-
-// package utils
-
-// import (
-// 	"bytes"
-// 	"html/template"
-// 	"log"
-// 	"os"
-
-// 	"github.com/resend/resend-go/v2"
-// )
-
-// func SendEmail(to, subject, body string) {
-// 	go func() {
-// 		apiKey := os.Getenv("RESEND_API_KEY")
-
-// 		client := resend.NewClient(apiKey)
-
-// 		params := &resend.SendEmailRequest{
-// 			From:    "onboarding@resend.dev",
-// 			To:      []string{to},
-// 			Subject: subject,
-// 			Html:    body,
-// 		}
-
-// 		_, err := client.Emails.Send(params)
-
-// 		if err != nil {
-// 			log.Println("Email gagal dikirim:", err)
-// 			return
-// 		}
-
-// 		log.Println("Email berhasil dikirim ke", to)
-// 	}()
-// }
-
-// func ParseTemplate(templateFileName string, data interface{}) (string, error) {
-// 	t, err := template.ParseFiles(templateFileName)
-// 	if err != nil {
-// 		return "", err
-// 	}
-
-// 	var buf bytes.Buffer
-// 	if err := t.Execute(&buf, data); err != nil {
-// 		return "", err
-// 	}
-
-// 	return buf.String(), nil
-// }

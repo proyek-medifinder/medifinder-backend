@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -33,8 +32,6 @@ import (
 // @name Authorization
 func main() {
 
-	
-
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found")
 	}
@@ -54,15 +51,6 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-
-	fmt.Println(`
-  __  __          _ _  ______ _           _            
- |  \/  |        | (_)|  ____(_)         | |           
- | \  / | ___  __| |_ | |__   _ _ __   __| | ___ _ __ 
- | |\/| |/ _ \/ _  | ||  __| | | '_ \ / _  |/ _ \ '__|
- | |  | |  __/ (_| | || |    | | | | | (_| |  __/ |   
- |_|  |_|\___|\__,_|_||_|    |_|_| |_|\__,_|\___|_|   
-`)
 
 	r.Run(":" + port)
 }
