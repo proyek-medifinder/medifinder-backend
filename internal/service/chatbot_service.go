@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -42,20 +43,55 @@ func isRestrictedMedicine(medName string) bool {
 	return false
 }
 
-// Helper cek apakah apotek saat ini sedang buka
+func parseTimeToMinutes(tStr string) (int, bool) {
+	tStr = strings.TrimSpace(tStr)
+	if tStr == "" {
+		return 0, false
+	}
+	parts := strings.Split(tStr, ":")
+	if len(parts) < 2 {
+		return 0, false
+	}
+	h, err1 := strconv.Atoi(parts[0])
+	m, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return 0, false
+	}
+	return h*60 + m, true
+}
+
+// Helper cek apakah apotek saat ini sedang buka (zona waktu Asia/Jakarta / WIB)
 func isApotekOpen(jamBuka, jamTutup *string) bool {
 	if jamBuka == nil || jamTutup == nil || *jamBuka == "" || *jamTutup == "" {
 		return true // Anggap buka jika tidak diatur (24 jam)
 	}
-	now := time.Now().Format("15:04:05")
-	buka := *jamBuka
-	tutup := *jamTutup
-	if buka <= tutup {
-		return now >= buka && now <= tutup
+
+	openMinutes, okOpen := parseTimeToMinutes(*jamBuka)
+	closeMinutes, okClose := parseTimeToMinutes(*jamTutup)
+	if !okOpen || !okClose {
+		return true
 	}
-	// Untuk jam operasional lewat tengah malam (misal 13:00 - 02:00)
-	return now >= buka || now <= tutup
+
+	// 24 jam operasional jika jam buka sama dengan jam tutup
+	if openMinutes == closeMinutes {
+		return true
+	}
+
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		loc = time.FixedZone("WIB", 7*3600)
+	}
+	now := time.Now().In(loc)
+	currentMinutes := now.Hour()*60 + now.Minute()
+
+	if openMinutes < closeMinutes {
+		return currentMinutes >= openMinutes && currentMinutes <= closeMinutes
+	}
+
+	// Untuk jam operasional lewat tengah malam (misal 18:00 - 02:00)
+	return currentMinutes >= openMinutes || currentMinutes <= closeMinutes
 }
+
 func formatHour(timeStr *string) string {
 	if timeStr == nil || *timeStr == "" {
 		return "-"
