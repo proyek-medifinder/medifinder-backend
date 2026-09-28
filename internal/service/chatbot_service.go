@@ -171,13 +171,13 @@ FORMAT OUTPUT WAJIB JSON MURNI:
 
 		if err == nil && len(pharmacies) > 0 {
 			var mapped []dto.ChatPharmacyResponse
-					for _, p := range pharmacies {
+			for _, p := range pharmacies {
 				mapped = append(mapped, dto.ChatPharmacyResponse{
 					ApotekID:  p.ApotekID,
 					Nama:      p.Nama,
 					Alamat:    p.Alamat,
-					Latitude:  p.Latitude,   
-					Longitude: p.Longitude,  
+					Latitude:  p.Latitude,
+					Longitude: p.Longitude,
 					Distance:  p.Distance,
 					Harga:     p.Harga,
 					Stok:      p.Stok,

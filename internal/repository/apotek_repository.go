@@ -210,7 +210,8 @@ func (r *ApotekRepository) FindNearby(
 	countQuery := `
 		SELECT COUNT(*)
 		FROM apotek
-		WHERE ` + distanceCondition + `
+		WHERE UPPER(verification_status) = 'APPROVED'
+		AND ` + distanceCondition + `
 		AND ` + timeConditionCount
 
 	err := r.DB.Get(&total, countQuery, countArgs...)
@@ -264,7 +265,8 @@ func (r *ApotekRepository) FindNearby(
 
 	baseDataQuery := `
 		FROM apotek
-		WHERE ` + distanceCondition + `
+		WHERE UPPER(verification_status) = 'APPROVED'
+		AND ` + distanceCondition + `
 		AND ` + timeConditionData
 
 	// DATA QUERY
