@@ -88,3 +88,52 @@ func (r *ObatRepository) Delete(id string) error {
 
 	return nil
 }
+
+type ApotekWithMedicineStock struct {
+	ApotekID  string  `db:"apotek_id"`
+	Nama      string  `db:"nama"`
+	Alamat    string  `db:"alamat"`
+	Latitude  float64 `db:"latitude"`   
+	Longitude float64 `db:"longitude"` 
+	Harga     float64 `db:"harga"`
+	Stok      int     `db:"stok"`
+	Distance  float64 `db:"distance"`
+	JamBuka   *string `db:"jam_buka"`
+	JamTutup  *string `db:"jam_tutup"`
+}
+
+// Cari apotek berstok dari jarak paling dekat ke paling jauh
+func (r *ObatRepository) FindPharmaciesWithStock(lat, lng float64, medicineName string) ([]ApotekWithMedicineStock, error) {
+	var list []ApotekWithMedicineStock
+
+	query := `
+	SELECT 
+		a.id::TEXT AS apotek_id, 
+		a.nama, 
+		a.alamat, 
+		a.latitude,
+		a.longitude,
+		COALESCE(a.jam_buka::TEXT, '') AS jam_buka,
+		COALESCE(a.jam_tutup::TEXT, '') AS jam_tutup,
+		o.harga::FLOAT AS harga, 
+		(COALESCE(o.stok, 0) - COALESCE(o.reserved_stock, 0))::INT AS stok,
+		(6371 * acos(
+			LEAST(1.0, GREATEST(-1.0, 
+				cos(radians($1)) * cos(radians(a.latitude)) * 
+				cos(radians(a.longitude) - radians($2)) + 
+				sin(radians($1)) * sin(radians(a.latitude))
+			))
+		)) AS distance
+	FROM apotek a
+	JOIN obat o ON o.apotek_id = a.id
+	WHERE o.nama ILIKE $3
+	  AND COALESCE(o.stok, 0) > 0
+	  AND UPPER(a.verification_status) = 'APPROVED'
+	ORDER BY distance ASC
+	LIMIT 5;
+	`
+
+	searchTerm := "%" + strings.TrimSpace(medicineName) + "%"
+	err := r.DB.Select(&list, query, lat, lng, searchTerm)
+	return list, err
+}

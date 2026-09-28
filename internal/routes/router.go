@@ -75,6 +75,9 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	artikelService := &service.ArtikelService{Repo: artikelRepo}
 	kontakService := &service.KontakService{Repo: kontakRepo}
 
+	chatbotService := &service.ChatbotService{ObatRepo: obatRepo}
+
+
 	// ================= HANDLER =================
 	authHandler := &handler.AuthHandler{Service: authService}
 	apotekHandler := &handler.ApotekHandler{Service: apotekService}
@@ -88,6 +91,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	superAdminHandler := &handler.SuperAdminHandler{
 		Service: superAdminService,
 	}
+	chatbotHandler := &handler.ChatbotHandler{Service: chatbotService}
 	artikelHandler := &handler.ArtikelHandler{Service: artikelService}
 	kontakHandler := &handler.KontakHandler{Service: kontakService}
 
@@ -105,6 +109,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= PUBLIC =================
 	r.Static("/public", "./public")
 	r.Static("/uploads", "./public/uploads")
+	r.POST("/api/chat", chatbotHandler.Chat)
 	r.POST("/kontak", kontakHandler.SubmitMessage)
 	r.GET("/artikel", artikelHandler.GetArticles)
 	r.GET("/artikel/:slug", artikelHandler.GetDetail)
