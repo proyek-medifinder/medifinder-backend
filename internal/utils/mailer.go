@@ -2,108 +2,76 @@ package utils
 
 import (
 	"bytes"
-	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
-	"net/smtp"
+	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-// SendEmail mengirim email secara asynchronous (goroutine) menggunakan SMTP Gmail
+// SendEmail mengirim email secara asynchronous via REST API Brevo (Port 443 HTTPS - Anti Blokir Cloud)
 func SendEmail(to, subject, body string) {
-	smtpHost := os.Getenv("SMTP_HOST")
-	smtpPort := os.Getenv("SMTP_PORT")
-	smtpEmail := os.Getenv("SMTP_EMAIL")
-	smtpPass := os.Getenv("SMTP_PASS") // Mengambil dari SMTP_PASS di .env
-
-	if smtpPort == "" {
-		smtpPort = "465"
+	apiKey := os.Getenv("BREVO_API_KEY")
+	senderEmail := os.Getenv("EMAIL_SENDER")
+	if senderEmail == "" {
+		senderEmail = "cs.medifinder@gmail.com"
 	}
 
-	if smtpHost == "" || smtpEmail == "" || smtpPass == "" {
-		log.Println("⚠️ MAILER ERROR: Konfigurasi SMTP belum lengkap di environment variable!")
+	if apiKey == "" {
+		log.Println("⚠️ MAILER ERROR: BREVO_API_KEY belum diset di environment variable!")
 		return
 	}
 
 	go func() {
-		addr := fmt.Sprintf("%s:%s", smtpHost, smtpPort)
-		auth := smtp.PlainAuth("", smtpEmail, smtpPass, smtpHost)
-
-		headers := make(map[string]string)
-		headers["From"] = fmt.Sprintf("Medifinder <%s>", smtpEmail)
-		headers["To"] = to
-		headers["Subject"] = subject
-		headers["MIME-Version"] = "1.0"
-		headers["Content-Type"] = "text/html; charset=UTF-8"
-
-		var msg bytes.Buffer
-		for k, v := range headers {
-			msg.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		payload := map[string]interface{}{
+			"sender": map[string]string{
+				"name":  "Medifinder",
+				"email": senderEmail,
+			},
+			"to": []map[string]string{
+				{
+					"email": to,
+				},
+			},
+			"subject":     subject,
+			"htmlContent": body,
 		}
-		msg.WriteString("\r\n" + body)
 
-		// Jika menggunakan port 465, wajib gunakan TLS Dial langsung
-		if smtpPort == "465" {
-			tlsConfig := &tls.Config{
-				ServerName: smtpHost,
-			}
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			log.Println("Email payload marshal error:", err)
+			return
+		}
 
-			conn, err := tls.Dial("tcp", addr, tlsConfig)
-			if err != nil {
-				log.Println("Email gagal konek TLS:", err)
-				return
-			}
-			defer conn.Close()
+		req, err := http.NewRequest("POST", "https://api.brevo.com/v3/smtp/email", bytes.NewBuffer(jsonData))
+		if err != nil {
+			log.Println("Email request creation error:", err)
+			return
+		}
 
-			client, err := smtp.NewClient(conn, smtpHost)
-			if err != nil {
-				log.Println("Email gagal inisialisasi client:", err)
-				return
-			}
-			defer client.Quit()
+		req.Header.Set("accept", "application/json")
+		req.Header.Set("api-key", apiKey)
+		req.Header.Set("content-type", "application/json")
 
-			if err = client.Auth(auth); err != nil {
-				log.Println("Email gagal auth SMTP:", err)
-				return
-			}
+		client := &http.Client{Timeout: 10 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Println("Email gagal dikirim via Brevo API:", err)
+			return
+		}
+		defer resp.Body.Close()
 
-			if err = client.Mail(smtpEmail); err != nil {
-				log.Println("Email gagal set sender:", err)
-				return
-			}
+		respBody, _ := io.ReadAll(resp.Body)
 
-			if err = client.Rcpt(to); err != nil {
-				log.Println("Email gagal set recipient:", err)
-				return
-			}
-
-			w, err := client.Data()
-			if err != nil {
-				log.Println("Email gagal create data writer:", err)
-				return
-			}
-
-			if _, err = w.Write(msg.Bytes()); err != nil {
-				log.Println("Email gagal write body:", err)
-				return
-			}
-
-			if err = w.Close(); err != nil {
-				log.Println("Email gagal close writer:", err)
-				return
-			}
+		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			log.Println("Email berhasil dikirim ke", to)
 		} else {
-			// Fallback jika menggunakan port 587
-			err := smtp.SendMail(addr, auth, smtpEmail, []string{to}, msg.Bytes())
-			if err != nil {
-				log.Println("Email gagal dikirim via SMTP:", err)
-				return
-			}
+			log.Printf("Email gagal dikirim via Brevo [%d]: %s\n", resp.StatusCode, string(respBody))
 		}
-
-		log.Println("Email berhasil dikirim ke", to)
 	}()
 }
 
