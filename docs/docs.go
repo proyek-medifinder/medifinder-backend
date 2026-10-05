@@ -548,7 +548,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "number",
-                        "description": "Radius pencarian dalam km (default 5, max 50)",
+                        "description": "Radius pencarian dalam km (default 5, max 5)",
                         "name": "radius",
                         "in": "query"
                     },

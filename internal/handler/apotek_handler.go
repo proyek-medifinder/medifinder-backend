@@ -146,7 +146,7 @@ func (h *ApotekHandler) UpdateMyApotek(c *gin.Context) {
 // @Produce json
 // @Param lat query number true "Latitude user"
 // @Param lng query number true "Longitude user"
-// @Param radius query number false "Radius pencarian dalam km (default 5, max 50)"
+// @Param radius query number false "Radius pencarian dalam km (default 5, max 5)"
 // @Param page query int false "Page number"
 // @Param limit query int false "Limit data"
 // @Success 200 {object} map[string]interface{} "list apotek + pagination"
@@ -176,8 +176,10 @@ func (h *ApotekHandler) SearchNearby(c *gin.Context) {
 	radius := 5.0 // default 5km
 	if radiusStr != "" {
 		if r, err := strconv.ParseFloat(radiusStr, 64); err == nil {
-			if r > 50 {
-				radius = 50 // Batasin biar DB nggak kerja bakti
+			if r > 5.0 {
+				radius = 5.0 // Batasi maksimal 5km
+			} else if r <= 0 {
+				radius = 5.0
 			} else {
 				radius = r
 			}

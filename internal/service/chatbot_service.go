@@ -225,7 +225,7 @@ FORMAT OUTPUT WAJIB JSON MURNI:
 
 			result.Pharmacies = mapped
 
-			const maxNearbyRadius = 10.0 // Batas apotek sekitar (10 km)
+			const maxNearbyRadius = 5.0 // Batas apotek sekitar (5 km)
 			if pharmacies[0].Distance <= maxNearbyRadius {
 				result.Availability = "NEARBY"
 				result.IsNearby = true
