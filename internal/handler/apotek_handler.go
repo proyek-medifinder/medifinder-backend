@@ -273,8 +273,13 @@ func (h *ApotekHandler) UpdatePhoto(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{
-		"message": "Foto apotek berhasil diupdate",
-		"url":     url,
+		"message":   "Foto apotek berhasil diupdate",
+		"url":       url,
+		"photo_url": url,
+		"data": gin.H{
+			"url":       url,
+			"photo_url": url,
+		},
 	})
 }
 
