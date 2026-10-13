@@ -128,6 +128,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	r.GET("/mobile/apotek", apotekHandler.MobileIndex)
 	r.GET("/mobile/apotek/:id", apotekHandler.MobileGetByID)
 	r.GET("/apotek/:id/obat", obatHandler.GetByApotekPublic)
+	r.GET("/obat/:id", obatHandler.GetByIDPublic)
 	r.GET("/apotek/nearby", apotekHandler.SearchNearby)
 	r.GET("/apotek/:id", apotekHandler.GetByID)
 	// ++++++++++++++++++++++++++++++++++++++++++
@@ -162,7 +163,10 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		adminGroup.PUT("/foto", apotekHandler.UpdatePhoto)
 		adminGroup.POST("/obat", obatHandler.Create)
 		adminGroup.GET("/obat", obatHandler.GetMyObat)
+		adminGroup.GET("/obat/:id", obatHandler.GetMyObatByID)
 		adminGroup.PUT("/obat/:id", obatHandler.Update)
+		adminGroup.PUT("/obat/:id/foto", obatHandler.UpdateImage)
+		adminGroup.PUT("/obat/:id/image", obatHandler.UpdateImage)
 		adminGroup.DELETE("/obat/:id", obatHandler.Delete)
 		// ++++++++++ APOTEK +++++++++++
 		adminGroup.GET("/apotek", apotekHandler.GetMyApotek)

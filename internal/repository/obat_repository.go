@@ -16,8 +16,8 @@ type ObatRepository struct {
 // ================= CREATE =================
 func (r *ObatRepository) Create(obat *domain.Obat) error {
 	query := `
-	INSERT INTO obat (id, apotek_id, nama, stok, reserved_stock, harga)
-	VALUES (:id, :apotek_id, :nama, :stok, :reserved_stock, :harga)
+	INSERT INTO obat (id, apotek_id, nama, deskripsi, stok, reserved_stock, harga, image_url)
+	VALUES (:id, :apotek_id, :nama, :deskripsi, :stok, :reserved_stock, :harga, :image_url)
 	`
 	_, err := r.DB.NamedExec(query, obat)
 	return err
@@ -28,9 +28,10 @@ func (r *ObatRepository) FindByApotek(apotekID string) ([]domain.Obat, error) {
 	var obat []domain.Obat
 
 	query := `
-	SELECT id, apotek_id, nama, stok, reserved_stock, harga::INT
+	SELECT id, apotek_id, nama, deskripsi, stok, reserved_stock, harga::FLOAT AS harga, image_url
 	FROM obat
-	WHERE apotek_id = $1
+	WHERE apotek_id = $1 AND (deleted_at IS NULL)
+	ORDER BY created_at DESC NULLS LAST
 	`
 
 	err := r.DB.Select(&obat, query, apotekID)
@@ -47,9 +48,9 @@ func (r *ObatRepository) FindByID(id string) (*domain.Obat, error) {
 	}
 
 	query := `
-	SELECT id, apotek_id, nama, stok, reserved_stock, harga::INT
+	SELECT id, apotek_id, nama, deskripsi, stok, reserved_stock, harga::FLOAT AS harga, image_url
 	FROM obat
-	WHERE id = $1
+	WHERE id = $1 AND (deleted_at IS NULL)
 	`
 
 	err = r.DB.Get(&obat, query, parsedID)
@@ -65,12 +66,27 @@ func (r *ObatRepository) Update(obat *domain.Obat) error {
 	query := `
 	UPDATE obat 
 	SET nama = :nama,
+		deskripsi = :deskripsi,
 		stok = :stok,
 		reserved_stock = :reserved_stock,
-		harga = :harga
+		harga = :harga,
+		image_url = :image_url,
+		updated_at = NOW()
 	WHERE id = :id
 	`
 	_, err := r.DB.NamedExec(query, obat)
+	return err
+}
+
+// ================= UPDATE IMAGE =================
+func (r *ObatRepository) UpdateImage(id string, imageURL string) error {
+	query := `
+	UPDATE obat
+	SET image_url = $1,
+		updated_at = NOW()
+	WHERE id = $2
+	`
+	_, err := r.DB.Exec(query, imageURL, id)
 	return err
 }
 
@@ -93,13 +109,14 @@ type ApotekWithMedicineStock struct {
 	ApotekID  string  `db:"apotek_id"`
 	Nama      string  `db:"nama"`
 	Alamat    string  `db:"alamat"`
-	Latitude  float64 `db:"latitude"`   
-	Longitude float64 `db:"longitude"` 
+	Latitude  float64 `db:"latitude"`
+	Longitude float64 `db:"longitude"`
 	Harga     float64 `db:"harga"`
 	Stok      int     `db:"stok"`
 	Distance  float64 `db:"distance"`
 	JamBuka   *string `db:"jam_buka"`
 	JamTutup  *string `db:"jam_tutup"`
+	ImageURL  *string `db:"image_url"`
 }
 
 // Cari apotek berstok dari jarak paling dekat ke paling jauh
@@ -117,6 +134,7 @@ func (r *ObatRepository) FindPharmaciesWithStock(lat, lng float64, medicineName 
 		COALESCE(a.jam_tutup::TEXT, '') AS jam_tutup,
 		o.harga::FLOAT AS harga, 
 		(COALESCE(o.stok, 0) - COALESCE(o.reserved_stock, 0))::INT AS stok,
+		o.image_url,
 		(6371 * acos(
 			LEAST(1.0, GREATEST(-1.0, 
 				cos(radians($1)) * cos(radians(a.latitude)) * 

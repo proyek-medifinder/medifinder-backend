@@ -54,15 +54,21 @@ func (r *ObatRepository) FindByApotekPaginated(apotekID string, name string, lim
 
 	if name != "" {
 		query = `
-			SELECT id, apotek_id, nama, stok, harga 
+			SELECT id, apotek_id, nama, deskripsi, stok, reserved_stock, harga::FLOAT AS harga, image_url 
 			FROM obat 
-			WHERE apotek_id=$1 AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
+			WHERE apotek_id=$1 AND (deleted_at IS NULL) AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
 			ORDER BY similarity(nama, $3) DESC
 			LIMIT $4 OFFSET $5
 		`
 		args = []interface{}{apotekID, "%" + name + "%", name, limit, offset}
 	} else {
-		query = `SELECT id, apotek_id, nama, stok, harga FROM obat WHERE apotek_id=$1 LIMIT $2 OFFSET $3`
+		query = `
+			SELECT id, apotek_id, nama, deskripsi, stok, reserved_stock, harga::FLOAT AS harga, image_url 
+			FROM obat 
+			WHERE apotek_id=$1 AND (deleted_at IS NULL)
+			ORDER BY created_at DESC NULLS LAST
+			LIMIT $2 OFFSET $3
+		`
 		args = []interface{}{apotekID, limit, offset}
 	}
 
@@ -79,11 +85,11 @@ func (r *ObatRepository) CountByApotek(apotekID string, name string) (int, error
 		query = `
 			SELECT COUNT(id) 
 			FROM obat 
-			WHERE apotek_id=$1 AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
+			WHERE apotek_id=$1 AND (deleted_at IS NULL) AND (nama ILIKE $2 OR similarity(nama, $3) > 0.3)
 		`
 		args = []interface{}{apotekID, "%" + name + "%", name}
 	} else {
-		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1`
+		query = `SELECT COUNT(id) FROM obat WHERE apotek_id=$1 AND (deleted_at IS NULL)`
 		args = []interface{}{apotekID}
 	}
 
@@ -260,7 +266,12 @@ func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 	obats := []domain.Obat{}
 
 	// 3. FIX: Tambahin ::INT di kolom harga biar gak bentrok sama int64 di struct Go
-	queryObat := `SELECT id, apotek_id, nama, stok, harga::INT FROM obat WHERE apotek_id = $1`
+	queryObat := `
+		SELECT id, apotek_id, nama, deskripsi, stok, reserved_stock, harga::FLOAT AS harga, image_url 
+		FROM obat 
+		WHERE apotek_id = $1 AND (deleted_at IS NULL)
+		ORDER BY created_at DESC NULLS LAST
+	`
 	err = r.DB.Select(&obats, queryObat, id)
 	if err != nil {
 		fmt.Printf("ERROR AMBIL OBAT: %v\n", err)
