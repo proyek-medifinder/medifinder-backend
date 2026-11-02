@@ -114,6 +114,9 @@ func (s *ApotekService) GetByID(id string) (domain.Apotek, error) {
 	if err != nil {
 		return apotek, err
 	}
+	if !domain.IsActiveAccount(apotek.AdminStatus) {
+		return apotek, errors.New("Apotek dinonaktifkan karena akun admin tidak aktif")
+	}
 	return apotek, nil
 }
 

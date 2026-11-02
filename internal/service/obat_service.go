@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
@@ -14,6 +15,9 @@ type ObatService struct {
 }
 
 func (s *ObatService) Create(adminID, nama string, deskripsi *string, stok int, harga float64, imageURL *string) (*domain.Obat, error) {
+	if err := validateMedicinePrice(stok, harga); err != nil {
+		return nil, err
+	}
 	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return nil, errors.New("admin has no apotek")
@@ -51,7 +55,18 @@ func (s *ObatService) GetMyObat(adminID string) ([]domain.Obat, error) {
 }
 
 func (s *ObatService) GetByID(obatID string) (*domain.Obat, error) {
-	return s.ObatRepo.FindByID(obatID)
+	obat, err := s.ObatRepo.FindByID(obatID)
+	if err != nil {
+		return nil, err
+	}
+	active, err := s.ObatRepo.IsPharmacyAvailable(obat.ApotekID.String())
+	if err != nil {
+		return nil, err
+	}
+	if !active {
+		return nil, errors.New("Apotek sedang dinonaktifkan")
+	}
+	return obat, nil
 }
 
 func (s *ObatService) GetMyObatByID(adminID, obatID string) (*domain.Obat, error) {
@@ -73,6 +88,14 @@ func (s *ObatService) GetMyObatByID(adminID, obatID string) (*domain.Obat, error
 }
 
 func (s *ObatService) GetPublicByApotek(apotekID string, name string, limit, offset int) ([]domain.Obat, int, error) {
+	active, err := s.ObatRepo.IsPharmacyAvailable(apotekID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if !active {
+		return nil, 0, errors.New("Apotek sedang dinonaktifkan")
+	}
+
 	obat, err := s.ObatRepo.FindByApotekPaginated(apotekID, name, limit, offset)
 	if err != nil {
 		return nil, 0, err
@@ -87,6 +110,9 @@ func (s *ObatService) GetPublicByApotek(apotekID string, name string, limit, off
 }
 
 func (s *ObatService) Update(adminID, obatID, nama string, deskripsi *string, stok int, harga float64, imageURL *string) (*domain.Obat, error) {
+	if err := validateMedicinePrice(stok, harga); err != nil {
+		return nil, err
+	}
 	apotek, err := s.ApotekRepo.FindByAdmin(uuid.MustParse(adminID))
 	if err != nil {
 		return nil, errors.New("admin has no apotek")
@@ -155,4 +181,11 @@ func (s *ObatService) Delete(adminID, obatID string) error {
 	}
 
 	return s.ObatRepo.Delete(obatID)
+}
+
+func validateMedicinePrice(stock int, price float64) error {
+	if stock < 0 || math.IsNaN(price) || math.IsInf(price, 0) || price <= 0 || math.Trunc(price) != price || price > 1e12 {
+		return errors.New("stok harus nol atau lebih dan harga harus rupiah bulat lebih dari nol")
+	}
+	return nil
 }

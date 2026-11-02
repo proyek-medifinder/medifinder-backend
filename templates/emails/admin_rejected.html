@@ -1,84 +1,10 @@
-<!doctype html>
-<html lang="id">
-  <head>
-    <meta charset="UTF-8" />
-    <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f9fafb;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        max-width: 600px;
-        margin: 40px auto;
-        background: #ffffff;
-        padding: 40px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-      }
-      .logo {
-        text-align: center;
-        font-size: 28px;
-        font-weight: 700;
-        color: #14b8a6;
-        margin-bottom: 30px;
-      }
-      .content {
-        color: #374151;
-        font-size: 16px;
-        line-height: 1.6;
-      }
-      .reason-box {
-        background-color: #fff1f2;
-        border: 1px solid #fecdd3;
-        padding: 20px;
-        border-radius: 8px;
-        margin: 25px 0;
-      }
-      .footer {
-        margin-top: 40px;
-        font-size: 14px;
-        color: #9ca3af;
-        text-align: center;
-        border-top: 1px solid #e5e7eb;
-        padding-top: 20px;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <div class="logo">medifinder</div>
-      <div class="content">
-        <h2 style="color: #111827; margin-top: 0; text-align: center">
-          Update Status Pendaftaran
-        </h2>
-        <p>Halo, <strong>{{.Name}}</strong>,</p>
-        <p>
-          Terima kasih telah menunggu. Kami telah meninjau pengajuan pendaftaran
-          untuk <strong>{{.NamaApotek}}</strong>.
-        </p>
-
-        <p>
-          Mohon maaf, saat ini kami
-          <strong>belum bisa menyetujui</strong> pendaftaran Anda karena alasan
-          berikut:
-        </p>
-
-        <div class="reason-box">
-          <p style="margin: 0; color: #991b1b">
-            <strong>Alasan:</strong> {{.Reason}}
-          </p>
-        </div>
-
-        <p>
-          Silakan lakukan pendaftaran ulang dengan data yang lebih lengkap atau
-          sesuai dengan ketentuan kami.
-        </p>
-      </div>
-      <div class="footer">
-        <p>&copy; 2026 Medifinder. Semua Hak Dilindungi.</p>
-      </div>
-    </div>
-  </body>
-</html>
+{{define "title"}}Pengajuan belum disetujui{{end}}
+{{define "preheader"}}Lihat catatan peninjauan untuk pengajuan apotek Anda.{{end}}
+{{define "content"}}
+<p style="margin:0;color:#0f766e;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;">Verifikasi mitra</p>
+<h1 style="margin:12px 0 24px;color:#0f172a;font-size:28px;line-height:36px;font-weight:bold;" class="email-title">Pengajuan belum disetujui</h1>
+<p style="margin:0 0 16px;">Halo, <strong>{{.Name}}</strong>.</p>
+<p style="margin:0 0 16px;">Kami telah meninjau pengajuan <strong>{{.NamaApotek}}</strong>. Saat ini, pengajuan Anda belum dapat disetujui.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;width:100%;"><tr><td style="padding:18px 20px;border:1px solid #fecdd3;border-radius:12px;background-color:#fff1f2;color:#9f1239;font-size:14px;line-height:23px;"><strong style="display:block;margin-bottom:4px;">Catatan peninjauan</strong><span style="white-space:pre-line;">{{.Reason}}</span></td></tr></table>
+<p style="margin:0 0 16px;">Periksa catatan di atas dan hubungi tim MediFinder jika Anda membutuhkan bantuan terkait pengajuan ini.</p>
+{{end}}

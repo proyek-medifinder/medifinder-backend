@@ -2,6 +2,8 @@ package routes
 
 import (
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -20,6 +22,16 @@ import (
 func SetupRouter(db *sqlx.DB) *gin.Engine {
 
 	r := gin.Default()
+	// Only trust explicitly configured reverse proxies for IP-based limits.
+	var trustedProxies []string
+	if value := strings.TrimSpace(os.Getenv("TRUSTED_PROXIES")); value != "" {
+		for _, proxy := range strings.Split(value, ",") {
+			trustedProxies = append(trustedProxies, strings.TrimSpace(proxy))
+		}
+	}
+	if err := r.SetTrustedProxies(trustedProxies); err != nil {
+		panic("invalid TRUSTED_PROXIES configuration")
+	}
 
 	r.Use(gin.Recovery())
 
@@ -80,7 +92,6 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 
 	chatbotService := &service.ChatbotService{ObatRepo: obatRepo}
 
-
 	// ================= HANDLER =================
 	authHandler := &handler.AuthHandler{Service: authService}
 	apotekHandler := &handler.ApotekHandler{Service: apotekService}
@@ -99,6 +110,14 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	kontakHandler := &handler.KontakHandler{Service: kontakService}
 
 	// ================= BACKGROUND JOB =================
+	go func() {
+		for {
+			if err := paymentService.SendPendingReceipts(10); err != nil {
+				log.Printf("Payment receipt email: %v", err)
+			}
+			time.Sleep(10 * time.Second)
+		}
+	}()
 	go func() {
 		for {
 			err := transaksiService.CancelExpiredTransactions()
@@ -122,8 +141,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	r.POST("/login", authHandler.Login)
 	r.POST("/google-login", authHandler.GoogleLogin)
 	// ++++++++++++++++++++++++++++++++++++++++++
-	r.POST("/forgot-password", authHandler.ForgotPassword)
-	r.POST("/reset-password", authHandler.ResetPassword)
+	r.POST("/forgot-password", middleware.PasswordResetLimit(5, 15*time.Minute), authHandler.ForgotPassword)
+	r.POST("/reset-password", middleware.PasswordResetLimit(10, time.Minute), authHandler.ResetPassword)
 	// ++++++++++++++++++++++++++++++++++++++++++
 	r.GET("/mobile/apotek", apotekHandler.MobileIndex)
 	r.GET("/mobile/apotek/:id", apotekHandler.MobileGetByID)
@@ -150,6 +169,8 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		// ++++++++++ TRANSAKSI +++++++++++
 		userGroup.GET("/transaksi", transaksiHandler.UserHistory)
 		userGroup.GET("/transaksi/:id", transaksiHandler.Detail)
+		userGroup.POST("/transaksi/:id/refresh", transaksiHandler.Refresh)
+		userGroup.POST("/transaksi/:id/payment", cartHandler.ContinuePayment)
 		// ++++++++++ RESEP +++++++++++
 		userGroup.POST("/resep", resepHandler.Upload)
 	}
@@ -157,6 +178,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= ADMIN =================
 	adminGroup := r.Group("/admin")
 	adminGroup.Use(middleware.AuthMiddleware())
+	adminGroup.Use(middleware.ActiveAdminAccount(userRepo.IsActiveAdmin))
 	adminGroup.Use(middleware.Authorize("admin_apotek"))
 	{
 		// +++++++++++ OBAT +++++++++++
@@ -174,6 +196,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 		// ++++++++++ TRANSAKSI +++++++++++
 		adminGroup.GET("/transaksi", transaksiHandler.AdminHistory)
 		adminGroup.GET("/transaksi/:id", transaksiHandler.Detail)
+		adminGroup.PATCH("/transaksi/:id/fulfillment", transaksiHandler.Fulfillment)
 		// ++++++++++ RESEP +++++++++++
 		adminGroup.PUT("/resep/:id", resepHandler.UpdateStatus)
 		adminGroup.GET("/resep", resepHandler.List)
@@ -212,6 +235,7 @@ func SetupRouter(db *sqlx.DB) *gin.Engine {
 	// ================= AUTH PROTECTED (SEMUA ROLE) =================
 	protectedAuth := r.Group("/")
 	protectedAuth.Use(middleware.AuthMiddleware()) // Wajib masukin Token JWT!
+	protectedAuth.Use(middleware.ActiveAdminAccount(userRepo.IsActiveAdmin))
 	{
 		protectedAuth.POST("/change-password", authHandler.ChangePassword)
 		protectedAuth.GET("/me", authHandler.GetMe)

@@ -1,30 +1,29 @@
 package utils
 
 import (
-	"os"
-	"time"
-
-	"github.com/golang-jwt/jwt/v5"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
 )
 
-func GenerateResetToken(email string) (string, error) {
-	claims := jwt.MapClaims{
-		"email": email,
-		"exp":   time.Now().Add(15 * time.Minute).Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-}
-
-func VerifyResetToken(tokenStr string) (string, error) {
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if err != nil || !token.Valid {
+// GenerateResetToken creates a 256-bit secret independent of login JWTs.
+func GenerateResetToken() (string, error) {
+	token := make([]byte, 32)
+	if _, err := rand.Read(token); err != nil {
 		return "", err
 	}
+	return hex.EncodeToString(token), nil
+}
 
-	claims := token.Claims.(jwt.MapClaims)
-	return claims["email"].(string), nil
+func HashResetToken(token string) (string, error) {
+	if len(token) != 64 {
+		return "", errors.New("invalid reset token")
+	}
+	raw, err := hex.DecodeString(token)
+	if err != nil || len(raw) != 32 {
+		return "", errors.New("invalid reset token")
+	}
+	hash := sha256.Sum256(raw)
+	return hex.EncodeToString(hash[:]), nil
 }

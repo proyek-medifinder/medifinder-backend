@@ -62,13 +62,17 @@ func (s *AuthService) Login(email, password string) (*dto.AuthResponse, error) {
 	if user.Status == "rejected" {
 		return nil, errors.New("pendaftaran akun anda ditolak")
 	}
-	if user.Status == "suspended" {
+	if domain.NormalizeAccountStatus(user.Status) == "suspended" {
 		return nil, errors.New("akun anda telah dinonaktifkan oleh Super Admin")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("invalid email/password")
+	}
+
+	if user.RoleID == RoleAdminUUID && !domain.IsActiveAccount(user.Status) {
+		return nil, errors.New("akun admin Anda dinonaktifkan atau belum aktif. Hubungi Super Admin")
 	}
 
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
@@ -183,6 +187,10 @@ func (s *AuthService) GoogleLogin(googleToken string) (*dto.AuthResponse, error)
 		return nil, errors.New("pendaftaran akun anda ditolak")
 	}
 
+	if user.RoleID == RoleAdminUUID && !domain.IsActiveAccount(user.Status) {
+		return nil, errors.New("akun admin Anda dinonaktifkan atau belum aktif. Hubungi Super Admin")
+	}
+
 	_ = s.UserRepo.UpdateLastLogin(user.ID)
 
 	role := "user"
@@ -237,68 +245,6 @@ func (s *AuthService) GetMe(userID uuid.UUID) (map[string]interface{}, error) {
 
 // +++++++++++++++++ PASSWORD RELATED SERVICES BELOW +++++++++++++++++
 
-func (s *AuthService) ForgotPassword(email string) {
-	user, _ := s.UserRepo.FindByEmail(email)
-	name := "User"
-	if user != nil {
-		name = user.Name
-	}
-
-	token, _ := utils.GenerateResetToken(email)
-
-	baseURL := os.Getenv("APP_URL")
-	if baseURL == "" {
-		baseURL = "http://localhost:3000"
-	}
-
-	resetLink := fmt.Sprintf("%s/reset-password?token=%s", baseURL, token)
-
-	data := struct {
-		Name      string
-		ResetLink string
-	}{
-		Name:      name,
-		ResetLink: resetLink,
-	}
-
-	body, err := utils.ParseTemplate("templates/emails/reset_password.html", data)
-	if err != nil {
-		log.Println("❌ Gagal render template email:", err)
-		body = "Klik link ini untuk reset password: " + resetLink
-	}
-
-	// 4. Kirim!
-	utils.SendEmail(email, "Reset Password Akun Medifinder", body)
-}
-
-func (s *AuthService) ResetPassword(token, newPassword string) error {
-	email, err := utils.VerifyResetToken(token)
-	if err != nil {
-		return fmt.Errorf("token tidak valid atau sudah kadaluarsa")
-	}
-
-	user, err := s.UserRepo.FindByEmail(email)
-	if err != nil {
-		return fmt.Errorf("user tidak ditemukan")
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("gagal memproses password baru")
-	}
-
-	err = s.UserRepo.UpdatePassword(user.ID, string(hashedPassword))
-	if err != nil {
-		return fmt.Errorf("gagal menyimpan password ke database")
-	}
-
-	log.Println("✅ Password berhasil direset untuk email:", email)
-
-	s.sendPasswordChangedEmail(email)
-
-	return nil
-}
-
 func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword string) error {
 
 	email, currentHash, err := s.UserRepo.GetAuthDataByID(userID)
@@ -330,11 +276,12 @@ func (s *AuthService) ChangePassword(userID uuid.UUID, oldPassword, newPassword 
 }
 
 func (s *AuthService) sendPasswordChangedEmail(email string) {
-	body := `
-	<h3>Password berhasil diubah</h3>
-	<p>Jika ini bukan Anda, segera hubungi admin atau ubah password Anda kembali.</p>
-	`
-	utils.SendEmail(email, "Password Berhasil Diubah", body)
+	body, err := utils.ParseTemplate("templates/emails/password_changed.html", struct{ Email string }{email})
+	if err != nil {
+		log.Printf("Password changed email template failed: %v", err)
+		return
+	}
+	utils.SendEmail(email, "Kata sandi akun MediFinder berhasil diubah", body)
 }
 
 // +++++++++++++++++ ADMIN REGISTRATION SERVICE BELOW +++++++++++++++++
@@ -393,10 +340,10 @@ func (s *AuthService) RegisterAdmin(req dto.RegisterAdminRequest) error {
 	emailBody, err := utils.ParseTemplate("templates/emails/admin_registration.html", data)
 	if err != nil {
 		log.Println("❌ Error template admin_registration:", err)
-		emailBody = "Pendaftaran Admin Apotek Anda berhasil diajukan. Mohon tunggu verifikasi 2x24 jam."
+		return nil // Registration succeeded; do not send an unformatted fallback email.
 	}
 
-	utils.SendEmail(req.Email, "Pendaftaran Admin Medifinder Diterima", emailBody)
+	utils.SendEmail(req.Email, "Pengajuan apotek diterima - MediFinder", emailBody)
 
 	return nil
 }

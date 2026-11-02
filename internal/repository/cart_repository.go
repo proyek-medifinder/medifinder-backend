@@ -126,7 +126,7 @@ func (r *CartRepository) GetCartWithItemsTx(tx *sqlx.Tx, cartID uuid.UUID) ([]do
 	query := `
 	SELECT id, cart_id, obat_id, jumlah
 	FROM cart_items
-	WHERE cart_id=$1
+	WHERE cart_id=$1 ORDER BY obat_id FOR UPDATE
 	`
 
 	err := tx.Select(&items, query, cartID)

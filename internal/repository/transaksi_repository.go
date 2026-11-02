@@ -45,7 +45,7 @@ func (r *TransaksiRepository) FindByUser(
 
 	// data query yang udah diupdate (Hapus expired_at, tambah token & url) adsadasd
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at
+	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at, expires_at, fulfillment_status, refunded_amount
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -87,7 +87,7 @@ func (r *TransaksiRepository) FindAllWithCount(
 	}
 
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at
+	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at, expires_at, fulfillment_status, refunded_amount
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -133,7 +133,7 @@ func (r *TransaksiRepository) FindByApotekWithCount(
 	}
 
 	dataQuery := `
-	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at
+	SELECT id, user_id, apotek_id, total_harga, status, snap_token, payment_url, created_at, updated_at, expires_at, fulfillment_status, refunded_amount
 	` + baseQuery + `
 	ORDER BY created_at DESC
 	LIMIT $` + strconv.Itoa(argIndex) +
@@ -178,6 +178,10 @@ func (r *TransaksiRepository) FindDetail(transaksiID string) ([]domain.DetailTra
 	WHERE transaksi_id = $1
 	`
 
-	err := r.DB.Select(&details, query, uuid.MustParse(transaksiID))
+	id, err := uuid.Parse(transaksiID)
+	if err != nil {
+		return nil, err
+	}
+	err = r.DB.Select(&details, query, id)
 	return details, err
 }

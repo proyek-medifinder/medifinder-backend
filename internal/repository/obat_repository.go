@@ -68,14 +68,23 @@ func (r *ObatRepository) Update(obat *domain.Obat) error {
 	SET nama = :nama,
 		deskripsi = :deskripsi,
 		stok = :stok,
-		reserved_stock = :reserved_stock,
 		harga = :harga,
 		image_url = :image_url,
 		updated_at = NOW()
-	WHERE id = :id
+	WHERE id = :id AND :stok >= reserved_stock
 	`
-	_, err := r.DB.NamedExec(query, obat)
-	return err
+	result, err := r.DB.NamedExec(query, obat)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("stok tidak boleh lebih kecil dari jumlah yang sedang dipesan")
+	}
+	return nil
 }
 
 // ================= UPDATE IMAGE =================
@@ -92,16 +101,22 @@ func (r *ObatRepository) UpdateImage(id string, imageURL string) error {
 
 // ================= DELETE =================
 func (r *ObatRepository) Delete(id string) error {
-	query := `DELETE FROM obat WHERE id = $1`
+	query := `DELETE FROM obat WHERE id = $1 AND reserved_stock=0 AND NOT EXISTS(SELECT 1 FROM detail_transaksi WHERE obat_id=$1)`
 
-	_, err := r.DB.Exec(query, id)
+	result, err := r.DB.Exec(query, id)
 	if err != nil {
 		if strings.Contains(err.Error(), "violates foreign key constraint") {
 			return errors.New("obat tidak bisa dihapus karena sudah tercatat di transaksi. Ubah stok jadi 0 saja")
 		}
 		return err
 	}
-
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("obat tidak bisa dihapus karena sedang dipesan atau tercatat dalam transaksi")
+	}
 	return nil
 }
 
@@ -147,6 +162,7 @@ func (r *ObatRepository) FindPharmaciesWithStock(lat, lng float64, medicineName 
 	WHERE o.nama ILIKE $3
 	  AND COALESCE(o.stok, 0) > 0
 	  AND UPPER(a.verification_status) = 'APPROVED'
+      AND EXISTS (SELECT 1 FROM users u WHERE u.id=a.admin_id AND u.deleted_at IS NULL AND LOWER(BTRIM(u.status::text)) IN ('active','approved'))
 	ORDER BY distance ASC
 	LIMIT 5;
 	`
@@ -154,4 +170,10 @@ func (r *ObatRepository) FindPharmaciesWithStock(lat, lng float64, medicineName 
 	searchTerm := "%" + strings.TrimSpace(medicineName) + "%"
 	err := r.DB.Select(&list, query, lat, lng, searchTerm)
 	return list, err
+}
+
+func (r *ObatRepository) IsPharmacyAvailable(apotekID string) (bool, error) {
+	var available bool
+	err := r.DB.Get(&available, `SELECT EXISTS (SELECT 1 FROM apotek a JOIN users u ON u.id=a.admin_id WHERE a.id=$1 AND u.deleted_at IS NULL AND UPPER(a.verification_status)='APPROVED' AND LOWER(BTRIM(u.status::text)) IN ('active','approved'))`, apotekID)
+	return available, err
 }

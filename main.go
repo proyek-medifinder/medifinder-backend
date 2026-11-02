@@ -38,6 +38,9 @@ func main() {
 
 	db := config.ConnectDB()
 	defer db.Close()
+	if err := config.MigratePayments(db); err != nil {
+		log.Fatal("Payment schema migration failed: ", err)
+	}
 
 	r := routes.SetupRouter(db)
 

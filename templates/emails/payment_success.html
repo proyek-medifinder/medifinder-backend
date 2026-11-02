@@ -1,0 +1,39 @@
+{{define "title"}}Pembayaran diterima{{end}}
+{{define "preheader"}}Pembayaran pesanan Anda telah dikonfirmasi. Berikut rincian obat dan total pembayaran.{{end}}
+{{define "content"}}
+<p style="margin:0;color:#0f766e;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;">Konfirmasi pembayaran</p>
+<h1 class="email-title" style="margin:12px 0 24px;color:#0f172a;font-size:28px;line-height:36px;">Pembayaran diterima</h1>
+<p style="margin:0 0 16px;">Halo, <strong>{{.CustomerName}}</strong>.</p>
+<p style="margin:0 0 20px;">Pembayaran pesanan Anda telah berhasil diverifikasi. Simpan email ini sebagai ringkasan pesanan Anda.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 24px;background-color:#f0fdfa;border:1px solid #99f6e4;">
+<tr><td style="padding:18px 20px;">
+<p style="margin:0 0 8px;color:#0f766e;font-weight:bold;">Status pembayaran: Lunas</p>
+<p style="margin:0 0 6px;font-size:13px;word-break:break-all;">Nomor pesanan: <strong>{{.OrderID}}</strong></p>
+<p style="margin:0;font-size:13px;">Dikonfirmasi: {{.ConfirmedAt}}</p>
+</td></tr></table>
+<h2 style="margin:0 0 8px;font-size:18px;color:#0f172a;">{{.PharmacyName}}</h2>
+{{if .PharmacyAddress}}<p style="margin:0 0 24px;color:#64748b;font-size:14px;">{{.PharmacyAddress}}</p>{{end}}
+<table width="100%" cellpadding="0" cellspacing="0" style="width:100%;font-size:13px;line-height:21px;border:1px solid #e2e8f0;">
+<thead><tr style="background-color:#f8fafc;">
+<th scope="col" align="left" style="padding:12px 10px;color:#475569;">Obat</th>
+<th scope="col" align="center" style="padding:12px 6px;color:#475569;">Jumlah</th>
+<th scope="col" align="right" style="padding:12px 10px;color:#475569;">Subtotal</th>
+</tr></thead>
+<tbody>
+{{range .Items}}<tr>
+<td style="padding:14px 10px;border-top:1px solid #e2e8f0;word-break:break-word;"><strong style="color:#0f172a;">{{.Name}}</strong><br><span style="color:#64748b;font-size:12px;">{{.UnitPrice}} / item</span></td>
+<td align="center" style="padding:14px 6px;border-top:1px solid #e2e8f0;">{{.Quantity}}</td>
+<td align="right" style="padding:14px 10px;border-top:1px solid #e2e8f0;white-space:nowrap;">{{.Subtotal}}</td>
+</tr>{{end}}
+</tbody>
+<tfoot><tr style="background-color:#f0fdfa;">
+<td colspan="2" style="padding:16px 10px;border-top:1px solid #99f6e4;color:#0f766e;font-weight:bold;">Total dibayar</td>
+<td align="right" style="padding:16px 10px;border-top:1px solid #99f6e4;color:#0f766e;font-weight:bold;white-space:nowrap;">{{.Total}}</td>
+</tr></tfoot>
+</table>
+{{if .NeedsReview}}
+<p style="margin:24px 0 0;padding:16px;background-color:#fffbeb;color:#92400e;font-size:14px;line-height:23px;">Pembayaran sudah diterima. Ketersediaan stok pesanan sedang diperiksa oleh apotek. Pantau perkembangan pesanan melalui riwayat transaksi di profil MediFinder.</p>
+{{else}}
+<p style="margin:24px 0 0;color:#475569;font-size:14px;line-height:23px;">Pesanan menunggu diproses oleh apotek. Pantau status penyiapan dan kesiapan pengambilan melalui riwayat transaksi di profil MediFinder.</p>
+{{end}}
+{{end}}

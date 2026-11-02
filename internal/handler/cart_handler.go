@@ -125,7 +125,7 @@ func (h *CartHandler) Checkout(c *gin.Context) {
 
 	transaksiID, snapToken, redirectURL, err := h.Service.Checkout(userID)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(409, gin.H{"error": err.Error(), "transaksi_id": transaksiID})
 		return
 	}
 
@@ -135,4 +135,13 @@ func (h *CartHandler) Checkout(c *gin.Context) {
 		"snap_token":   snapToken,
 		"redirect_url": redirectURL,
 	})
+}
+
+func (h *CartHandler) ContinuePayment(c *gin.Context) {
+	id, token, url, err := h.Service.ContinuePayment(c.GetString("user_id"), c.Param("id"))
+	if err != nil {
+		c.JSON(409, gin.H{"error": err.Error(), "transaksi_id": id})
+		return
+	}
+	c.JSON(200, gin.H{"transaksi_id": id, "snap_token": token, "redirect_url": url})
 }

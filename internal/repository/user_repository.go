@@ -1,8 +1,8 @@
 package repository
 
 import (
+	"errors"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -67,9 +67,10 @@ func (r *UserRepository) FindAdmins(limit, offset int) ([]domain.User, int, erro
 	}
 
 	err = r.DB.Select(&list, `
-		SELECT id, name, email, role_id
-		FROM users
-		WHERE role_id = $1 AND deleted_at IS NULL
+		SELECT u.id, u.name, u.email, u.role_id, u.status, u.created_at, u.updated_at,
+		COALESCE((SELECT a.nama FROM apotek a WHERE a.admin_id=u.id ORDER BY a.created_at DESC LIMIT 1), '') AS nama_apotek
+		FROM users u
+		WHERE u.role_id = $1 AND u.deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3
 	`, RoleAdminUUID, limit, offset)
@@ -86,42 +87,56 @@ func (r *UserRepository) UpdateAdmin(id uuid.UUID, name, email string) error {
 	return err
 }
 
-func (r *UserRepository) DeleteAdmin(id uuid.UUID) error {
-	_, err := r.DB.Exec(`
-		DELETE FROM users
-		WHERE id=$1
-		AND role_id=$2
-	`, id, RoleAdminUUID)
-
-	return err
+func (r *UserRepository) DeleteAdmin(id uuid.UUID) (*domain.User, error) {
+	tx, err := r.DB.Beginx()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+	var admin domain.User
+	// Capture the recipient from the row actually deleted, not from client input.
+	if err := tx.Get(&admin, `DELETE FROM users WHERE id=$1 AND role_id=$2 AND deleted_at IS NULL
+		RETURNING id, name, email`, id, RoleAdminUUID); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+	return &admin, nil
 }
 
 func (r *UserRepository) CreateAdmin(user *domain.User) error {
 	_, err := r.DB.Exec(`
-		INSERT INTO users (id, name, email, password, role_id)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO users (id, name, email, password, role_id, status)
+		VALUES ($1, $2, $3, $4, $5, 'active')
 	`, user.ID, user.Name, user.Email, user.Password, RoleAdminUUID)
 	return err
 }
 
 // ================= FITUR BARU RESET PASSWORD =================
 
-func (r *UserRepository) UpdateResetToken(email, token string, expiry time.Time) error {
-	query := `UPDATE users SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3 AND deleted_at IS NULL`
-	_, err := r.DB.Exec(query, token, expiry, email)
-	return err
+// Reserve a new token only once per minute, including concurrent requests.
+func (r *UserRepository) IssuePasswordReset(id uuid.UUID, tokenHash string) (bool, error) {
+	result, err := r.DB.Exec(`UPDATE users SET reset_token = $1, reset_token_expiry = CURRENT_TIMESTAMP + INTERVAL '15 minutes'
+        WHERE id = $2 AND deleted_at IS NULL
+        AND (reset_token_expiry IS NULL OR reset_token_expiry <= CURRENT_TIMESTAMP + INTERVAL '14 minutes')`, tokenHash, id)
+	if err != nil {
+		return false, err
+	}
+	rows, err := result.RowsAffected()
+	return rows == 1, err
 }
 
-func (r *UserRepository) FindByResetToken(token string) (*domain.User, error) {
-	var user domain.User
-	query := `SELECT * FROM users WHERE reset_token = $1 AND deleted_at IS NULL`
-	err := r.DB.Get(&user, query, token)
-	return &user, err
+// Consuming the token and changing the password must be atomic.
+func (r *UserRepository) ConsumePasswordReset(tokenHash, passwordHash string) (string, error) {
+	var email string
+	err := r.DB.Get(&email, `UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE reset_token = $2 AND reset_token_expiry > CURRENT_TIMESTAMP AND deleted_at IS NULL RETURNING email`, passwordHash, tokenHash)
+	return email, err
 }
 
-func (r *UserRepository) ClearResetToken(id uuid.UUID, newPassword string) error {
-	query := `UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2 AND deleted_at IS NULL`
-	_, err := r.DB.Exec(query, newPassword, id)
+func (r *UserRepository) RevokePasswordReset(id uuid.UUID, tokenHash string) error {
+	_, err := r.DB.Exec(`UPDATE users SET reset_token = NULL, reset_token_expiry = NULL WHERE id = $1 AND reset_token = $2`, id, tokenHash)
 	return err
 }
 
@@ -134,7 +149,7 @@ func (r *UserRepository) FindByID(id uuid.UUID) (*domain.User, error) {
 }
 
 func (r *UserRepository) UpdatePassword(id uuid.UUID, newPassword string) error {
-	query := `UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`
+	query := `UPDATE users SET password = $1, reset_token = NULL, reset_token_expiry = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND deleted_at IS NULL`
 	_, err := r.DB.Exec(query, newPassword, id)
 	return err
 }
@@ -196,10 +211,41 @@ func (r *UserRepository) VerifyAdmin(adminID, superAdminID uuid.UUID, action, no
 
 // ================= FITUR SUPER ADMIN UBAH STATUS (FR-45) =================
 
-func (r *UserRepository) UpdateAdminStatus(id uuid.UUID, status string) error {
-	query := `UPDATE users SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND role_id = $3 AND deleted_at IS NULL`
-	_, err := r.DB.Exec(query, status, id, RoleAdminUUID)
-	return err
+func (r *UserRepository) UpdateAdminStatus(id uuid.UUID, status string) (*domain.User, bool, error) {
+	tx, err := r.DB.Beginx()
+	if err != nil {
+		return nil, false, err
+	}
+	defer tx.Rollback()
+	var user domain.User
+	if err := tx.Get(&user, `SELECT id, name, email, status FROM users WHERE id=$1 AND role_id=$2 AND deleted_at IS NULL FOR UPDATE`, id, RoleAdminUUID); err != nil {
+		return nil, false, err
+	}
+	current := domain.NormalizeAccountStatus(user.Status)
+	if current != "active" && current != "suspended" {
+		return nil, false, errors.New("Gunakan proses verifikasi untuk akun yang belum disetujui.")
+	}
+	if current == status {
+		return &user, false, tx.Commit()
+	}
+	if _, err := tx.Exec(`UPDATE users SET status=$1, updated_at=CURRENT_TIMESTAMP WHERE id=$2`, status, id); err != nil {
+		return nil, false, err
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, false, err
+	}
+	user.Status = status
+	return &user, true, nil
+}
+
+func (r *UserRepository) IsActiveAdmin(id string) (bool, error) {
+	parsed, err := uuid.Parse(id)
+	if err != nil {
+		return false, err
+	}
+	var active bool
+	err = r.DB.Get(&active, `SELECT EXISTS (SELECT 1 FROM users WHERE id=$1 AND role_id=$2 AND deleted_at IS NULL AND LOWER(BTRIM(status::text)) IN ('active','approved'))`, parsed, RoleAdminUUID)
+	return active, err
 }
 
 // ================= FITUR ADMIN APOTEK REGISTER =================

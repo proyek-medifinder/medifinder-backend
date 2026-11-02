@@ -7,13 +7,14 @@ import (
 )
 
 type Apotek struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	AdminID   uuid.UUID `db:"admin_id" json:"admin_id"`
-	Nama      string    `db:"nama" json:"nama"`
-	Alamat    string    `db:"alamat" json:"alamat"`
-	Latitude  float64   `db:"latitude" json:"latitude"`
-	Longitude float64   `db:"longitude" json:"longitude"`
-	PhotoURL  *string   `db:"photo_url" json:"photo_url"`
+	AdminStatus string    `db:"admin_status" json:"admin_status"`
+	ID          uuid.UUID `db:"id" json:"id"`
+	AdminID     uuid.UUID `db:"admin_id" json:"admin_id"`
+	Nama        string    `db:"nama" json:"nama"`
+	Alamat      string    `db:"alamat" json:"alamat"`
+	Latitude    float64   `db:"latitude" json:"latitude"`
+	Longitude   float64   `db:"longitude" json:"longitude"`
+	PhotoURL    *string   `db:"photo_url" json:"photo_url"`
 
 	PhoneNumber *string `db:"phone_number" json:"phone_number"`
 	Deskripsi   *string `db:"deskripsi" json:"deskripsi,omitempty"`

@@ -331,7 +331,7 @@ func (h *ApotekHandler) SuperAdminIndex(c *gin.Context) {
 func (h *ApotekHandler) MobileIndex(c *gin.Context) {
 	page, limit, _ := utils.GetPaginationAdvanced(c)
 
-	data, total, err := h.Service.GetAllForSuperAdmin(page, limit)
+	data, total, err := h.Service.SearchNearby(0, 0, 5, limit, (page-1)*limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil daftar apotek"})
 		return

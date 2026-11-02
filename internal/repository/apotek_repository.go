@@ -133,7 +133,6 @@ func (r *ApotekRepository) Update(apotek *domain.Apotek) error {
 	return nil
 }
 
-
 func (r *ApotekRepository) FindNearby(
 	lat, lng float64,
 	radius float64,
@@ -188,7 +187,7 @@ func (r *ApotekRepository) FindNearby(
 	countQuery := `
 		SELECT COUNT(*)
 		FROM apotek
-		WHERE UPPER(verification_status) = 'APPROVED'
+		WHERE UPPER(verification_status) = 'APPROVED' AND EXISTS (SELECT 1 FROM users u WHERE u.id = apotek.admin_id AND u.deleted_at IS NULL AND LOWER(BTRIM(u.status::text)) IN ('active','approved'))
 		AND ` + distanceCondition
 
 	err := r.DB.Get(&total, countQuery, countArgs...)
@@ -216,7 +215,7 @@ func (r *ApotekRepository) FindNearby(
 	// DATA QUERY (tanpa filter jam — frontend yang tampilkan badge Buka/Tutup)
 	baseDataQuery := `
 		FROM apotek
-		WHERE UPPER(verification_status) = 'APPROVED'
+		WHERE UPPER(verification_status) = 'APPROVED' AND EXISTS (SELECT 1 FROM users u WHERE u.id = apotek.admin_id AND u.deleted_at IS NULL AND LOWER(BTRIM(u.status::text)) IN ('active','approved'))
 		AND ` + distanceCondition
 
 	// DATA QUERY
@@ -251,12 +250,11 @@ func (r *ApotekRepository) FindNearby(
 	return list, total, nil
 }
 
-
 func (r *ApotekRepository) GetByID(id string) (domain.Apotek, error) {
 	var apotek domain.Apotek
 
 	// 1. Ambil data apoteknya dulu
-	queryApotek := `SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, jam_buka, jam_tutup, photo_url, verification_status, created_at FROM apotek WHERE id = $1`
+	queryApotek := `SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, deskripsi, jam_buka, jam_tutup, photo_url, verification_status, created_at, COALESCE((SELECT u.status FROM users u WHERE u.id=apotek.admin_id AND u.deleted_at IS NULL), 'unavailable') AS admin_status FROM apotek WHERE id = $1`
 	err := r.DB.Get(&apotek, queryApotek, id)
 	if err != nil {
 		return apotek, err
@@ -294,9 +292,11 @@ func (r *ApotekRepository) FindAllWithCount(limit, offset int) ([]domain.Apotek,
 	}
 
 	query := `
-		SELECT id, admin_id, nama, alamat, latitude, longitude, phone_number, photo_url, verification_status, created_at 
-		FROM apotek 
-		ORDER BY created_at DESC 
+		SELECT a.id, a.admin_id, a.nama, a.alamat, a.latitude, a.longitude, a.phone_number, a.photo_url,
+        a.verification_status, a.created_at, a.jam_buka, a.jam_tutup, a.deskripsi,
+        COALESCE(u.status, 'unavailable') AS admin_status
+        FROM apotek a LEFT JOIN users u ON u.id=a.admin_id AND u.deleted_at IS NULL
+        ORDER BY a.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 	err = r.DB.Select(&list, query, limit, offset)

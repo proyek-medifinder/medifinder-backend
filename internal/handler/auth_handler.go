@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,8 @@ import (
 	"github.com/sasaefulanwar/medifinder/internal/dto"
 	"github.com/sasaefulanwar/medifinder/internal/service"
 )
+
+var passwordResetWorkers = make(chan struct{}, 16)
 
 type AuthHandler struct {
 	Service *service.AuthService
@@ -126,10 +129,22 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	h.Service.ForgotPassword(req.Email)
+	// Bounded background work keeps responses independent of account existence.
+	select {
+	case passwordResetWorkers <- struct{}{}:
+		go func(email string) {
+			defer func() { <-passwordResetWorkers }()
+			if err := h.Service.ForgotPassword(email); err != nil {
+				log.Printf("Password reset request failed: %v", err)
+			}
+		}(req.Email)
+	default:
+		c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Layanan sedang sibuk. Silakan coba lagi beberapa saat lagi."})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Jika email terdaftar, link reset telah dikirim",
+		"message": "Jika email terdaftar, tautan reset akan dikirim. Periksa kotak masuk atau spam. Tautan berlaku 15 menit dan hanya bisa digunakan sekali.",
 	})
 }
 

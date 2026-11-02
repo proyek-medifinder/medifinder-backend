@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -62,13 +64,47 @@ func (h *TransaksiHandler) Detail(c *gin.Context) {
 
 	id := c.Param("id")
 
-	data, err := h.Service.GetDetail(id)
+	data, err := h.Service.GetDetail(id, c.GetString("user_id"), c.GetString("role"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, data)
+}
+
+func (h *TransaksiHandler) Refresh(c *gin.Context) {
+	id := c.Param("id")
+	if !h.Service.CanAccess(id, c.GetString("user_id"), c.GetString("role")) {
+		c.JSON(404, gin.H{"error": "pesanan tidak ditemukan"})
+		return
+	}
+	if err := (&service.PaymentService{DB: h.Service.DB}).Reconcile(id); err != nil {
+		if !errors.Is(err, service.ErrPaymentNotFound) {
+			log.Printf("Payment refresh %s failed: %v", id, err)
+			if service.IsPaymentAccessDenied(err) {
+				c.JSON(503, gin.H{"error": "Pengecekan status belum tersedia karena izin key Midtrans belum sesuai. Admin perlu memeriksa Server Key dan izin Core API Read."})
+				return
+			}
+			c.JSON(503, gin.H{"error": "Status pembayaran belum dapat disinkronkan. Coba lagi beberapa saat."})
+			return
+		}
+	}
+	c.JSON(200, gin.H{"message": "status diperbarui"})
+}
+func (h *TransaksiHandler) Fulfillment(c *gin.Context) {
+	var req struct {
+		Status string `json:"status"`
+	}
+	if c.ShouldBindJSON(&req) != nil {
+		c.JSON(400, gin.H{"error": "status tidak valid"})
+		return
+	}
+	if err := h.Service.UpdateFulfillment(c.Param("id"), c.GetString("user_id"), req.Status); err != nil {
+		c.JSON(409, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{"message": "status pesanan diperbarui"})
 }
 
 // AdminHistory godoc

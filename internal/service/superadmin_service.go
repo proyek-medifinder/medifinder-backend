@@ -2,7 +2,9 @@ package service
 
 import (
 	"errors"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
@@ -39,18 +41,23 @@ func (s *SuperAdminService) UpdateAdmin(id, name, email string) error {
 }
 
 func (s *SuperAdminService) DeleteAdmin(id string) error {
-	// 1. TUKER STRING ID MENJADI FORMAT UUID
 	adminUUID, err := uuid.Parse(id)
 	if err != nil {
-		return err // Kalau frontend ngirim ID ngaco, langsung stop di sini
+		return errors.New("format ID admin tidak valid")
 	}
 
-	// 2. KIRIM UUID TADI KE REPOSITORY USER BUAT DIHAPUS (Pake DeleteAdmin!)
-	err = s.UserRepo.DeleteAdmin(adminUUID)
+	admin, err := s.UserRepo.DeleteAdmin(adminUUID)
 	if err != nil {
-		return err // Kalau database nolak, error-nya dilempar ke sini biar gak crash
+		return err
 	}
 
+	// Notify only after the deletion has committed successfully.
+	body, err := utils.ParseTemplate("templates/emails/admin_deleted.html", struct{ Name string }{admin.Name})
+	if err != nil {
+		log.Printf("Admin deletion email template failed: %v", err)
+	} else {
+		utils.SendEmail(admin.Email, "Akun admin apotek dihapus - MediFinder", body)
+	}
 	return nil
 }
 
@@ -65,11 +72,32 @@ func (s *SuperAdminService) ChangeAdminStatus(adminID string, status string) err
 	}
 
 	// Validasi input status biar nggak diisi sembarangan
-	if status != "approved" && status != "suspended" {
-		return errors.New("status hanya bisa 'approved' atau 'suspended'")
+	status = domain.NormalizeAccountStatus(status)
+	if status != "active" && status != "suspended" {
+		return errors.New("status hanya bisa 'active' atau 'suspended'")
 	}
 
-	return s.UserRepo.UpdateAdminStatus(id, status)
+	admin, changed, err := s.UserRepo.UpdateAdminStatus(id, status)
+	if err != nil {
+		return err
+	}
+	if changed {
+		loginLink := ""
+		if baseURL := strings.TrimRight(os.Getenv("APP_URL"), "/"); baseURL != "" {
+			loginLink = baseURL + "/admin/login"
+		}
+		body, err := utils.ParseTemplate("templates/emails/admin_status_changed.html", struct {
+			Name      string
+			Enabled   bool
+			LoginLink string
+		}{admin.Name, status == "active", loginLink})
+		if err != nil {
+			log.Printf("Admin status email template failed: %v", err)
+		} else {
+			utils.SendEmail(admin.Email, "Perubahan status akun admin - MediFinder", body)
+		}
+	}
+	return nil
 }
 
 // Pastikan package utils juga di-import di atas: "github.com/sasaefulanwar/medifinder/internal/utils"
@@ -113,13 +141,14 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 	// 3. Kirim Email Hasil Verifikasi pake Template
 	go func() {
 		var subject, body, templatePath string
+		var renderErr error
 		baseURL := os.Getenv("APP_URL")
 		if baseURL == "" {
 			baseURL = "http://localhost:3000"
 		}
 
 		if action == "approved" {
-			subject = "Selamat! Akun Admin Medifinder Disetujui 🎉"
+			subject = "Pengajuan apotek disetujui - MediFinder"
 			templatePath = "templates/emails/admin_approved.html"
 
 			data := struct {
@@ -129,11 +158,11 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 			}{
 				Name:       adminData.Name,
 				NamaApotek: namaApotek,
-				LoginLink:  baseURL + "/login",
+				LoginLink:  strings.TrimRight(baseURL, "/") + "/admin/login",
 			}
-			body, _ = utils.ParseTemplate(templatePath, data)
+			body, renderErr = utils.ParseTemplate(templatePath, data)
 		} else {
-			subject = "Update Pendaftaran Admin Medifinder"
+			subject = "Hasil peninjauan pengajuan apotek - MediFinder"
 			templatePath = "templates/emails/admin_rejected.html"
 
 			data := struct {
@@ -145,16 +174,12 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 				NamaApotek: namaApotek,
 				Reason:     notes,
 			}
-			body, _ = utils.ParseTemplate(templatePath, data)
+			body, renderErr = utils.ParseTemplate(templatePath, data)
 		}
 
-		// Kalau template gagal di-load, body bakal kosong. Kita kasih fallback.
-		if body == "" {
-			if action == "approved" {
-				body = "Pendaftaran apotek Anda disetujui. Silakan login."
-			} else {
-				body = "Pendaftaran ditolak: " + notes
-			}
+		if renderErr != nil {
+			log.Printf("Admin verification email template failed: %v", renderErr)
+			return
 		}
 
 		utils.SendEmail(adminData.Email, subject, body)

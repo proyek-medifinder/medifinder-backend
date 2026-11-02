@@ -1,0 +1,16 @@
+{{define "title"}}Akun admin {{if .Enabled}}diaktifkan{{else}}dinonaktifkan{{end}}{{end}}
+{{define "preheader"}}Status akun admin apotek Anda telah diperbarui oleh Super Admin.{{end}}
+{{define "content"}}
+<p style="margin:0;color:#0f766e;font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;">Status akun admin</p>
+<h1 class="email-title" style="margin:12px 0 24px;color:#0f172a;font-size:28px;line-height:36px;">Akun Anda {{if .Enabled}}aktif kembali{{else}}dinonaktifkan{{end}}</h1>
+<p style="margin:0 0 16px;">Halo, <strong>{{.Name}}</strong>.</p>
+{{if .Enabled}}
+<p style="margin:0 0 16px;">Super Admin telah mengaktifkan akun admin apotek Anda. Anda dapat kembali masuk untuk mengelola profil, stok obat, dan pesanan.</p>
+<p style="padding:18px 20px;border:1px solid #99e0d5;border-radius:12px;background-color:#f0fdfa;color:#115e59;">Apotek yang sudah terverifikasi kembali tersedia bagi pengguna MediFinder.</p>
+{{if .LoginLink}}<p style="margin:24px 0;"><a href="{{.LoginLink}}" class="email-button" style="display:inline-block;padding:14px 24px;border:1px solid #0f766e;border-radius:10px;background-color:#0f766e;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Masuk ke Dashboard Admin</a></p>{{end}}
+{{else}}
+<p style="margin:0 0 16px;">Super Admin telah menonaktifkan akun admin apotek Anda.</p>
+<p style="padding:18px 20px;border:1px solid #fde68a;border-radius:12px;background-color:#fffbeb;color:#92400e;">Akses dashboard dihentikan dan apotek sementara tidak tersedia untuk pencarian serta pesanan baru. Data apotek dan riwayat transaksi tetap tersimpan.</p>
+<p style="margin:0;">Hubungi tim MediFinder untuk informasi lebih lanjut atau pengaktifan kembali akun Anda.</p>
+{{end}}
+{{end}}
