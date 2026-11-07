@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/sasaefulanwar/medifinder/internal/utils"
@@ -21,11 +20,6 @@ func (s *AuthService) ForgotPassword(email string) error {
 		return fmt.Errorf("find reset account: %w", err)
 	}
 
-	base, err := url.Parse(strings.TrimSpace(os.Getenv("APP_URL")))
-	if err != nil || base == nil || base.Host == "" || base.User != nil ||
-		(base.Scheme != "https" && !(base.Scheme == "http" && (base.Hostname() == "localhost" || base.Hostname() == "127.0.0.1"))) {
-		return errors.New("APP_URL must be the HTTPS frontend URL (HTTP is allowed on localhost)")
-	}
 	token, err := utils.GenerateResetToken()
 	if err != nil {
 		return err
@@ -34,13 +28,14 @@ func (s *AuthService) ForgotPassword(email string) error {
 	if err != nil {
 		return err
 	}
-	base.Path = strings.TrimRight(base.Path, "/") + "/reset-password"
-	base.RawQuery = url.Values{"token": {token}}.Encode()
-	base.Fragment = ""
+	link, err := emailLink("/reset-password", url.Values{"token": {token}})
+	if err != nil {
+		return err
+	}
 	body, err := utils.ParseTemplate("templates/emails/reset_password.html", struct {
 		Name      string
 		ResetLink string
-	}{user.Name, base.String()})
+	}{user.Name, link})
 	if err != nil {
 		return err
 	}

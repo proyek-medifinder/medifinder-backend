@@ -3,8 +3,6 @@ package service
 import (
 	"errors"
 	"log"
-	"os"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/sasaefulanwar/medifinder/internal/domain"
@@ -82,9 +80,9 @@ func (s *SuperAdminService) ChangeAdminStatus(adminID string, status string) err
 		return err
 	}
 	if changed {
-		loginLink := ""
-		if baseURL := strings.TrimRight(os.Getenv("APP_URL"), "/"); baseURL != "" {
-			loginLink = baseURL + "/admin/login"
+		loginLink, linkErr := emailLink("/admin/login", nil)
+		if linkErr != nil {
+			log.Printf("Admin status email link failed: %v", linkErr)
 		}
 		body, err := utils.ParseTemplate("templates/emails/admin_status_changed.html", struct {
 			Name      string
@@ -142,12 +140,11 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 	go func() {
 		var subject, body, templatePath string
 		var renderErr error
-		baseURL := os.Getenv("APP_URL")
-		if baseURL == "" {
-			baseURL = "http://localhost:3000"
-		}
-
 		if action == "approved" {
+			loginLink, linkErr := emailLink("/admin/login", nil)
+			if linkErr != nil {
+				log.Printf("Admin approval email link failed: %v", linkErr)
+			}
 			subject = "Pengajuan apotek disetujui - MediFinder"
 			templatePath = "templates/emails/admin_approved.html"
 
@@ -158,7 +155,7 @@ func (s *SuperAdminService) VerifyAdmin(adminIDStr, superAdminIDStr, action, not
 			}{
 				Name:       adminData.Name,
 				NamaApotek: namaApotek,
-				LoginLink:  strings.TrimRight(baseURL, "/") + "/admin/login",
+				LoginLink:  loginLink,
 			}
 			body, renderErr = utils.ParseTemplate(templatePath, data)
 		} else {

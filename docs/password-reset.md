@@ -23,12 +23,14 @@ only on `/reset-password` after the user opens that link.
 Set these environment variables on the backend:
 
 ```dotenv
-APP_URL=https://your-frontend-domain.example
+EMAIL_APP_URL=https://medifinder.online
 BREVO_API_KEY=your-brevo-api-key
 EMAIL_SENDER=your-verified-sender@example.com
 ```
 
-HTTP is accepted only for localhost development. The sender must be authorized in
+Email links use `EMAIL_APP_URL`, then `APP_URL`, then `https://medifinder.online`.
+For local tests, set `EMAIL_APP_URL=http://localhost:3000`. The frontend
+must use the backend that issued the reset token. HTTP is accepted only for localhost development. The sender must be authorized in
 Brevo. The existing `users.reset_token` and `users.reset_token_expiry` columns are
 required; they are already referenced by the user model and repository.
 

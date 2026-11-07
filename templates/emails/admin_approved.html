@@ -7,5 +7,5 @@
 <p style="margin:0 0 16px;">Pengajuan <strong>{{.NamaApotek}}</strong> telah disetujui. Selamat bergabung sebagai mitra MediFinder.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;width:100%;"><tr><td style="padding:18px 20px;border:1px solid #99e0d5;border-radius:12px;background-color:#f0fdfa;color:#115e59;font-size:14px;line-height:23px;"><strong style="display:block;margin-bottom:4px;">Apotek terverifikasi</strong>Akun admin Anda sudah dapat mengakses dashboard.</td></tr></table>
 <p style="margin:0 0 16px;">Mulai kelola profil apotek, stok obat, dan pesanan melalui akun admin Anda.</p>
-<p style="margin:24px 0 0;"><a href="{{.LoginLink}}" class="email-button" style="display:inline-block;padding:14px 24px;border:1px solid #0f766e;border-radius:10px;background-color:#0f766e;color:#ffffff;font-size:15px;line-height:22px;font-weight:bold;text-decoration:none;mso-padding-alt:14px 24px;">Masuk ke Dashboard Admin</a></p>
+{{if .LoginLink}}<p style="margin:24px 0 0;"><a href="{{.LoginLink}}" class="email-button" style="display:inline-block;padding:14px 24px;border:1px solid #0f766e;border-radius:10px;background-color:#0f766e;color:#ffffff;font-size:15px;line-height:22px;font-weight:bold;text-decoration:none;mso-padding-alt:14px 24px;">Masuk ke Dashboard Admin</a></p>{{end}}
 {{end}}
