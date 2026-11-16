@@ -173,8 +173,11 @@ func (r *TransaksiRepository) FindDetail(transaksiID string) ([]domain.DetailTra
 	var details []domain.DetailTransaksi
 
 	query := `
-	SELECT id, transaksi_id, obat_id, jumlah, harga
-	FROM detail_transaksi
+	SELECT d.id, d.transaksi_id, d.obat_id,
+	       COALESCE(NULLIF(d.nama_obat, ''), o.nama, '') AS nama_obat,
+	       d.jumlah, d.harga
+	FROM detail_transaksi d
+	LEFT JOIN obat o ON o.id = d.obat_id
 	WHERE transaksi_id = $1
 	`
 
